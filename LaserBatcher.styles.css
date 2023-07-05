@@ -1,0 +1,110 @@
+/* /Pages/Index.razor.rz.scp.css */
+.svg-workspace[b-pbbmzg1huo] {
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow: auto;
+    border: 1px inset dimgrey;
+    border-radius: 5px;
+    padding: 10px;
+}
+    .svg-workspace > .svg-preview[b-pbbmzg1huo] {
+        /* This is mostly intended for prototyping; please download the pattern and re-host for production environments. Thank you! */
+        border: 1px solid black;
+        overflow: hidden;
+        position: relative;
+    }
+        .svg-workspace > .svg-preview[b-pbbmzg1huo]::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            z-index: -1;
+            background-color: var(--wood-color);
+            background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+            background-repeat: repeat;
+            transform: rotate(-90deg);
+        }
+/* /Shared/MainLayout.razor.rz.scp.css */
+.page[b-05drbne3ye] {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main[b-05drbne3ye] {
+    flex: 1;
+}
+
+.sidebar[b-05drbne3ye] {
+    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+}
+
+.top-row[b-05drbne3ye] {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #d6d5d5;
+    justify-content: flex-end;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+    .top-row[b-05drbne3ye]  a, .top-row[b-05drbne3ye]  .btn-link {
+        white-space: nowrap;
+        margin-left: 1.5rem;
+        text-decoration: none;
+    }
+
+    .top-row[b-05drbne3ye]  a:hover, .top-row[b-05drbne3ye]  .btn-link:hover {
+        text-decoration: underline;
+    }
+
+    .top-row[b-05drbne3ye]  a:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+@media (max-width: 640.98px) {
+    .top-row:not(.auth)[b-05drbne3ye] {
+        display: none;
+    }
+
+    .top-row.auth[b-05drbne3ye] {
+        justify-content: space-between;
+    }
+
+    .top-row[b-05drbne3ye]  a, .top-row[b-05drbne3ye]  .btn-link {
+        margin-left: 0;
+    }
+}
+
+@media (min-width: 641px) {
+    .page[b-05drbne3ye] {
+        flex-direction: row;
+    }
+
+    .sidebar[b-05drbne3ye] {
+        width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+    }
+
+    .top-row[b-05drbne3ye] {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .top-row.auth[b-05drbne3ye]  a:first-child {
+        flex: 1;
+        text-align: right;
+        width: 0;
+    }
+
+    .top-row[b-05drbne3ye], article[b-05drbne3ye] {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
