@@ -1,0 +1,317 @@
+﻿@page "/"
+@using System.IO
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Numerics;
+@using System.Linq;
+@using System.Collections.Generic;
+@using System.Xml.Linq;
+@using System.Xml;
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Laser Batcher</PageTitle>
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="settings" aria-labelledby="settingsLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="settingsLabel">Settings</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <fieldset class="border p-2 mb-5">
+            <legend>Material</legend>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label for="boxWidth">Material Width:</label>
+                    <input type="number" id="boxWidth" class="form-control" @bind="@boxWidthInches" step="0.1" min="0" />
+                </div>
+
+                <div class="col-6">
+                    <label for="boxHeight">Material Height:</label>
+                    <input type="number" id="boxHeight" class="form-control" @bind="@boxHeightInches" step="0.1" min="0" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label for="horizontalMargin">Horizontal Margin:</label>
+                    <input type="number" id="horizontalMargin" class="form-control" @bind="@horizontalMarginInches" step="0.1" min="0" aria-describedby="horizontalMarginHelpBlock" />
+                    <div id="horizontalMarginHelpBlock" class="form-text">
+                        A margin, in inches, applied to both the left and right sides of the material.
+                    </div>
+                </div>
+                <div class="col-6">
+                    <label for="verticalMargin">Vertical Margin:</label>
+                    <input type="number" id="verticalMargin" class="form-control" @bind="@verticalMarginInches" step="0.1" min="0" aria-describedby="verticalMarginHelpBlock" />
+                    <div id="verticalMarginHelpBlock" class="form-text">
+                        A margin, in inches, applied to both the top and bottom sides of the material.
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                </div>
+                <div class="col-6">
+                    <label for="woodColor">Wood:</label>
+                    <select id="woodColor" class="form-control" @bind="@woodColor">
+                        <option value="#8B4513">Red Oak</option>
+                        <option value="#5D473A">Walnut</option>
+                        <option value="#B22222">Cherry</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset class="border p-2 mb-5">
+            <legend>Copies</legend>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label for="svgUpload">Upload SVG:</label>
+                    <InputFile id="svgUpload" class="form-control" OnChange="HandleFileUpload" accept=".svg" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label for="spaceBetween">Space Between:</label>
+                    <input type="number" id="spaceBetween" class="form-control" @bind="@spaceBetweenInches" step="0.1" min="0" aria-describedby="spaceBetweenHelpBlock" />
+                    <div id="spaceBetweenHelpBlock" class="form-text">
+                        A margin, in inches, applied to the right and bottom of each copied graphic.
+                    </div>
+                </div>
+                <div class="col-6">
+                    <label for="copyQuantity"># of Copies:</label>
+                    <div class="input-group">
+                        <input type="number" id="copyQuantity" class="form-control" @bind="@copyQuantity" min="1" aria-describedby="copyQuantityHelpBlock" />
+                        <button class="btn btn-outline-secondary" type="button" title="This will calculate how many copies will fill the sheet of material based on the provided parameters." @onclick="CalculateFillSheet">Fill!</button>
+                    </div>
+                    <div id="copyQuantityHelpBlock" class="form-text">
+                        Total number of copies of the SVG to apply to the workspace.
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+    </div>
+</div>
+
+<div class="btn-toolbar" role="toolbar" aria-label="Workspace Toolbar">
+    <div class="btn-group me-2" role="group" aria-label="Settings">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#settings" aria-controls="settings">
+            <i class="oi oi-cog"></i>
+        </button>
+    </div>
+    @if (rendering != null)
+    {
+        <div class="btn-group me-2" role="group" aria-label="Rendering">
+            <button type="button" class="btn btn-outline-secondary" @onclick="ResetRendering">
+                <i class="oi oi-action-undo"></i>
+            </button>
+            <button type="button" class="btn btn-primary" aria-label="Save" @onclick="SaveBatch">
+                <i class="oi oi-file"></i>
+            </button>
+        </div>
+    }
+</div>
+<div class="svg-workspace">
+    @if (rendering != null)
+    {
+        <div class="svg-preview" style="width: @(boxWidthInches)in; height:@(boxHeightInches)in;--wood-color: @(woodColor);">
+            @((MarkupString)rendering.OuterXml)
+        </div>
+    }
+    else if (svgs.Any())
+    {
+        @if (TooManyCopiesException)
+        {
+            <p class="alert alert-danger">
+                Too many copies! That number of copies does not fit with this combination of margins and spacing.
+            </p>
+        }
+        <div class="text-center m-5">
+            <button @onclick="RenderGrid" class="btn btn-outline-primary center">Render</button>
+        </div>
+    }
+    else
+    {
+        <p class="alert alert-warning">Upload a SVG</p>
+    }
+</div>
+
+@code {
+    private XmlDocument rendering;
+    private List<XmlDocument> svgs = new List<XmlDocument>();
+    private float boxWidthInches = 19f;
+    private float boxHeightInches = 12f;
+    private float boxDepthInches = 0.125f;
+    private float horizontalMarginInches = 0.0f;
+    private float verticalMarginInches = 0.0f;
+    private int copyQuantity = 1;
+    private float spaceBetweenInches = 0.0f;
+    private float dpi;
+    private string woodColor = "#8B4513";
+    private bool TooManyCopiesException = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        dpi = await JSRuntime.InvokeAsync<float>("window.getDpi");
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        using (var stream = e.File.OpenReadStream())
+        {
+            var svgContent = await new StreamReader(stream).ReadToEndAsync();
+            svgs.Clear();
+            svgs.Add(ParseSvgContent(svgContent));
+        }
+    }
+    private XmlDocument ParseSvgContent(string svgContent)
+    {
+        var xDoc = new XmlDocument();
+        xDoc.LoadXml(svgContent);
+
+        return xDoc;
+    }
+
+    private void CalculateFillSheet()
+    {
+        var source = svgs.FirstOrDefault();
+        if (source == null)
+        {
+            copyQuantity = 1;
+            return;
+        }
+
+        float widthInch = float.Parse(source.DocumentElement.GetAttribute("width").Replace("in", string.Empty)),
+            heightInch = float.Parse(source.DocumentElement.GetAttribute("height").Replace("in", string.Empty));
+        float effectiveWidth = widthInch + spaceBetweenInches,
+            effectiveHeight = heightInch + spaceBetweenInches;
+        float availableWidth = boxWidthInches - (horizontalMarginInches * 2),
+            availableHeight = boxHeightInches - (verticalMarginInches * 2);
+
+        int maxItemsHorizontal = (int)(availableWidth / effectiveWidth),
+            maxItemsVertical = (int)(availableHeight / effectiveHeight);
+        copyQuantity = maxItemsHorizontal * maxItemsVertical;
+    }
+    private async Task SaveBatch()
+    {
+        // Generate SVG content
+        string svgContent = rendering.OuterXml;
+
+        // Convert SVG content to byte array
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(svgContent);
+
+        // Initiate file download
+        await JSRuntime.InvokeVoidAsync("window.saveAsFile", "laser_batch.svg", Convert.ToBase64String(bytes));
+
+    }
+    private void ResetRendering()
+    {
+        rendering = null;
+    }
+    private void RenderGrid()
+    {
+        TooManyCopiesException = false;
+
+        try
+        {
+            rendering = new XmlDocument();
+            rendering.AppendChild(rendering.CreateXmlDeclaration("1.0", "UTF-8", "no"));
+            rendering.AppendChild(rendering.CreateComment("Created with LightWorks Laser Batcher"));
+            XmlElement svg = rendering.CreateElement("svg");
+            svg.SetAttribute("xmlns", "http://www.w3.org/2000/svg");
+            svg.SetAttribute("version", "1.1");
+
+            svg.SetAttribute("width", $"{boxWidthInches * 96}");
+            svg.SetAttribute("height", $"{boxHeightInches * 96}");
+            svg.SetAttribute("viewBox", $"0 0 {boxWidthInches * 96} {boxHeightInches * 96}");
+            svg.SetAttribute("xmlns:svg", "http://www.w3.org/2000/svg");
+            svg.SetAttribute("enable-background", $"new 0 0 {boxWidthInches * 96} {boxHeightInches * 96}");
+
+            // Iterate over the original SVG items
+            foreach (var svgItem in svgs)
+            {
+                float startX = horizontalMarginInches,
+                    startY = verticalMarginInches,
+                    maxWidth = boxWidthInches - (horizontalMarginInches * 2),
+                    maxHeight = boxHeightInches - (verticalMarginInches * 2);
+                foreach (var translatedItem in WrapSvgInGrid(svgItem, rendering, copyQuantity, startX, startY, maxWidth, maxHeight, spaceBetweenInches))
+                {
+                    svg.AppendChild(translatedItem);
+                }
+            }
+            rendering.AppendChild(svg);
+        }
+        catch (Exception ex)
+        {
+            rendering = null;
+            Console.WriteLine(ex.ToString());
+        }
+    }
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="target"></param>
+    /// <param name="xStart">Left margin, in inches</param>
+    /// <param name="yStart">Top margin, in inches</param>
+    /// <param name="maxWidth">Maximum horizontal envelope, in inches. If null, then the total user-supplied bounds are used.</param>
+    /// <param name="maxHeight">Maximum vertical envelope, in inches. If null, then the total user-supplied bounds are used.</param>
+    /// <param name="spaceBetween"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    private IEnumerable<XmlElement> WrapSvgInGrid(XmlDocument source, XmlDocument target, int numberOfCopies, float xStart = 0.0f, float yStart = 0.0f, float? maxWidth = null, float? maxHeight = null, float? spaceBetween = null)
+    {
+        float widthInch = float.Parse(source.DocumentElement.GetAttribute("width").Replace("in", string.Empty)),
+            heightInch = float.Parse(source.DocumentElement.GetAttribute("height").Replace("in", string.Empty));
+
+        float StartX = xStart,
+            StartY = yStart,
+            Spacing = spaceBetween ?? spaceBetweenInches,
+            MaxWidth = maxWidth ?? boxWidthInches,
+            MaxHeight = maxHeight ?? boxHeightInches;
+
+        float mx = (StartX * dpi),
+            my = (StartY * dpi),
+            w = (widthInch + (spaceBetween ?? 0.0f)) * dpi,
+            h = (heightInch + (spaceBetween ?? 0.0f)) * dpi,
+            Mx = (StartX + MaxWidth) * dpi,
+            My = (StartY + MaxHeight) * dpi; // Adjust StartXY from inches by aspect ratio
+
+        // Add first copy (original)
+        var originalGroup = target.CreateElement("g");
+        originalGroup.SetAttribute("transform", $"translate({mx},{my})");
+        originalGroup.InnerXml = source.DocumentElement.OuterXml;
+        originalGroup.SetAttribute("id", "laser_batcher_original");
+        yield return originalGroup;
+        if ((mx + (w * 2)) <= Mx)
+        {
+            mx += w;
+        }
+
+        for (int i = 1; i < numberOfCopies; i++)
+        {
+            // Create the root <g> element
+            var groupElement = target.CreateElement("g");
+
+            groupElement.SetAttribute("transform", $"translate({mx},{my})");
+            groupElement.InnerXml = source.DocumentElement.OuterXml;
+
+            yield return groupElement;
+
+            // Check for Y shift
+            if ((mx + (w * 2)) <= Mx)
+            {
+                mx += w;
+            } else
+            {
+                mx = StartX * dpi;
+                if ((my + (h * 2)) <= My)
+                {
+                    my += h;
+                } else if (i < numberOfCopies-1)
+                {
+                    TooManyCopiesException = true;
+                    throw new Exception("Too many copies");
+                }
+            }
+        }
+    }
+}
