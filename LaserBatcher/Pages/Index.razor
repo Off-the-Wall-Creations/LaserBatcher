@@ -8,7 +8,7 @@
 @using System.Xml;
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Laser Batcher</PageTitle>
+<PageTitle>Laser Batcher - Off the Wall Creations</PageTitle>
 
 <div class="offcanvas offcanvas-start" tabindex="-1" id="settings" aria-labelledby="settingsLabel">
     <div class="offcanvas-header">
@@ -66,6 +66,7 @@
                 <div class="col-12">
                     <label for="svgUpload">Upload SVG:</label>
                     <InputFile id="svgUpload" class="form-control" OnChange="HandleFileUpload" accept=".svg" />
+                    <div class="form-text">See recommended format for SVG files on the <a href="https://github.com/Off-the-Wall-Creations/LaserBatcher/wiki/Inkscape-Recommendations" target="_blank" rel="noreferrer">GitHub Wiki</a></div>
                 </div>
             </div>
             <div class="row mb-3">
@@ -91,20 +92,28 @@
     </div>
 </div>
 
-<div class="btn-toolbar" role="toolbar" aria-label="Workspace Toolbar">
+<div class="btn-toolbar mb-2" role="toolbar" aria-label="Workspace Toolbar">
+    <div class="btn-group me-2" role="group" aria-label="Socials">
+        <a class="btn btn-outline-secondary text-danger-emphasis" href="https://github.com/sponsors/tbm0115" target="_blank" rel="noreferrer" aria-label="Sponsor" title="Sponsor">
+            <i class="iconoir-heart"></i>
+        </a>
+        <a class="btn btn-outline-secondary" href="https://github.com/Off-the-Wall-Creations/LaserBatcher" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
+            <i class="iconoir-github-circle"></i>
+        </a>
+    </div>
     <div class="btn-group me-2" role="group" aria-label="Settings">
-        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#settings" aria-controls="settings">
-            <i class="oi oi-cog"></i>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#settings" aria-controls="settings" title="Open Settings">
+            <i class="iconoir-settings"></i>
         </button>
     </div>
     @if (rendering != null)
     {
         <div class="btn-group me-2" role="group" aria-label="Rendering">
             <button type="button" class="btn btn-outline-secondary" @onclick="ResetRendering">
-                <i class="oi oi-action-undo"></i>
+                <i class="iconoir-restart"></i>
             </button>
             <button type="button" class="btn btn-primary" aria-label="Save" @onclick="SaveBatch">
-                <i class="oi oi-file"></i>
+                <i class="iconoir-save-floppy-disk"></i>
             </button>
         </div>
     }

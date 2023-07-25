@@ -10,6 +10,11 @@
       "provider": "cdnjs",
       "library": "jquery@3.7.0",
       "destination": "wwwroot/lib/jquery/"
+    },
+    {
+      "provider": "cdnjs",
+      "library": "iconoir@6.10.0",
+      "destination": "wwwroot/lib/iconoir/"
     }
-]
+  ]
 }
