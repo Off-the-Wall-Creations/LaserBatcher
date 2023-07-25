@@ -33,11 +33,11 @@
       "url": "_framework\/icudt.dat"
     },
     {
-      "hash": "sha256-qNGCIyKYSXzdyEN9d+6txPbzSXqIyHxSUiiBuxRTAjE=",
+      "hash": "sha256-BH0hcaRDrTjmLFmEEJDu854oLah81JaMo1X0HkRq3GE=",
       "url": "_framework\/blazor.boot.json"
     },
     {
-      "hash": "sha256-gVkHvG3yqaC0yJiIU2rLUrR2Muv8H6eg8RHAkwCp9Ds=",
+      "hash": "sha256-waNtt0HliI7yZAdNjLgwqOf2py7LwWkIihcc4FLTzRY=",
       "url": "_framework\/LaserBatcher.dll"
     },
     {
@@ -45,7 +45,7 @@
       "url": "_framework\/Microsoft.AspNetCore.Components.dll"
     },
     {
-      "hash": "sha256-SetNzpsSWw60xA1fkbAfBzlc0jp\/QvWkEzgCnUmj9wk=",
+      "hash": "sha256-pUPtC4iKQ7t\/UMvjIu2+yFSEgDEzBOLWVSiXn1vA0CA=",
       "url": "_framework\/Microsoft.AspNetCore.Components.Web.dll"
     },
     {
@@ -101,7 +101,7 @@
       "url": "_framework\/System.Collections.Concurrent.dll"
     },
     {
-      "hash": "sha256-qTkQ9U\/n1MaAO1VTXtQb1S65MKrI09ULvLIBD7FEWYg=",
+      "hash": "sha256-DARtHyFzvi172W1c+xEr41ojeZLbn97eoEXP4fZJ+bs=",
       "url": "_framework\/System.Collections.dll"
     },
     {
@@ -133,7 +133,7 @@
       "url": "_framework\/System.Net.Primitives.dll"
     },
     {
-      "hash": "sha256-fM8wSGDb\/3uRTJwZssO\/jifHSjTCKz3oqezsF3fZdCI=",
+      "hash": "sha256-uR88SQMuiBReZbiptjLxwMdSG0EW8MEu3sQvG+l4Ua4=",
       "url": "_framework\/System.Private.CoreLib.dll"
     },
     {
@@ -145,7 +145,7 @@
       "url": "_framework\/System.Private.Xml.dll"
     },
     {
-      "hash": "sha256-yscX8Ip6DAF1b2v8HpZBKo1l4m6LF\/PLcz7kq+4OuNY=",
+      "hash": "sha256-rWmfS1bPuqcYs4p17Uy\/DNngr0NQQOdpn5kLxM8KSBM=",
       "url": "_framework\/System.Runtime.dll"
     },
     {
@@ -237,7 +237,7 @@
       "url": "icon-512.png"
     },
     {
-      "hash": "sha256-FqYHZsfDtxOzjvYyDK2wVUpE1Y3b37RbDPHRrMfSTXU=",
+      "hash": "sha256-005m4RY2YQMyBBUh4lnr0u89n+96Z89hQY5K0vJUbv8=",
       "url": "index.html"
     },
     {
@@ -6269,5 +6269,5 @@
       "url": "sendCustomEvent.js"
     }
   ],
-  "version": "h2f24geS"
+  "version": "xPII1N++"
 };
