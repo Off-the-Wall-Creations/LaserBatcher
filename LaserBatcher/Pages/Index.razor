@@ -110,7 +110,7 @@
     {
         <div class="btn-group me-2" role="group" aria-label="Rendering">
             <button type="button" class="btn btn-outline-secondary" @onclick="ResetRendering">
-                <i class="iconoir-restart"></i>
+                <i class="iconoir-undo"></i>
             </button>
             <button type="button" class="btn btn-primary" aria-label="Save" @onclick="SaveBatch">
                 <i class="iconoir-save-floppy-disk"></i>
@@ -145,7 +145,7 @@
 
 @code {
     private XmlDocument rendering;
-    private List<XmlDocument> svgs = new List<XmlDocument>();
+    private Dictionary<IBrowserFile, XmlDocument> svgs = new Dictionary<IBrowserFile, XmlDocument>();
     private float boxWidthInches = 19f;
     private float boxHeightInches = 12f;
     private float boxDepthInches = 0.125f;
@@ -168,7 +168,7 @@
         {
             var svgContent = await new StreamReader(stream).ReadToEndAsync();
             svgs.Clear();
-            svgs.Add(ParseSvgContent(svgContent));
+            svgs.Add(e.File, ParseSvgContent(svgContent));
         }
     }
     private XmlDocument ParseSvgContent(string svgContent)
@@ -181,7 +181,7 @@
 
     private void CalculateFillSheet()
     {
-        var source = svgs.FirstOrDefault();
+        var source = svgs.Values.FirstOrDefault();
         if (source == null)
         {
             copyQuantity = 1;
@@ -207,8 +207,17 @@
         // Convert SVG content to byte array
         byte[] bytes = System.Text.Encoding.UTF8.GetBytes(svgContent);
 
+        var file = svgs.Keys.FirstOrDefault();
+        string filename = file != null && !string.IsNullOrEmpty(file.Name)
+            ? file.Name.Substring(0, file.Name.LastIndexOf("."))
+            : "laserbatcher";
         // Initiate file download
-        await JSRuntime.InvokeVoidAsync("window.saveAsFile", "laser_batch.svg", Convert.ToBase64String(bytes));
+        await JSRuntime.InvokeVoidAsync("window.saveAsFile", $"{filename}_batch_x{copyQuantity}.svg", Convert.ToBase64String(bytes));
+
+        // Call the JavaScript function to send the custom event to Google Analytics
+        await JSRuntime.InvokeVoidAsync("sendCustomEvent", "Rendering", "File", "RenderButtonClicked", $"{filename} - {file?.Size} - x{copyQuantity}");
+
+
 
     }
     private void ResetRendering()
@@ -241,12 +250,14 @@
                     startY = verticalMarginInches,
                     maxWidth = boxWidthInches - (horizontalMarginInches * 2),
                     maxHeight = boxHeightInches - (verticalMarginInches * 2);
-                foreach (var translatedItem in WrapSvgInGrid(svgItem, rendering, copyQuantity, startX, startY, maxWidth, maxHeight, spaceBetweenInches))
+                foreach (var translatedItem in WrapSvgInGrid(svgItem.Value, rendering, copyQuantity, startX, startY, maxWidth, maxHeight, spaceBetweenInches))
                 {
                     svg.AppendChild(translatedItem);
                 }
             }
             rendering.AppendChild(svg);
+
+            
         }
         catch (Exception ex)
         {
