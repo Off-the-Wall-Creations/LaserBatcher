@@ -25,3 +25,8 @@
             background-repeat: repeat;
             transform: rotate(-90deg);
         }
+.mapping-list { max-height: 32rem; }
+.mapping-list thead { position: sticky; top: 0; background: var(--bs-body-bg, #212529); z-index: 1; }
+.mapping-list td { vertical-align: middle; }
+.mapping-element { display: flex; align-items: center; gap: .75rem; min-width: 16rem; }
+.mapping-thumbnail { flex: 0 0 96px; object-fit: contain; border: 1px solid #6c757d; border-radius: .3rem; background-color: #e9ecef; background-image: conic-gradient(#ced4da 25%, transparent 0 50%, #ced4da 0 75%, transparent 0); background-size: 12px 12px; font-size: .65rem; color: #343a40; }

@@ -1,7 +1,9 @@
 # LaserBatcher
 An open-source, online tool for batching multiple parts for laser operations. All files are processed locally, so no need to worry about your designs being stored up in the :cloud: someplace :smiley:.
 
-This program is optimized to work with Glowforge lasers and designs made with Inkscape with the following considerations:
+Batch exports preserve hidden layers and semantic metadata, support per-copy or sheet-wide operation ordering, and use strict program filenames for external metadata extraction. See [SVG metadata and filename conventions](docs/svg-metadata.md) for the grammar, layer mapping, compatibility limits, and tests.
+
+This program supports Generic SVG and Inkscape-labelled designs with the following considerations:
 
  - The document dimensions **must** be in **inches**
  
@@ -11,7 +13,7 @@ This program is optimized to work with Glowforge lasers and designs made with In
  
 ![image](https://github.com/Off-the-Wall-Creations/LaserBatcher/assets/11471252/10361e8c-436f-47ed-80e8-d0bf515029a1)
 
- - Images **should** be converted to paths to improve performance. **Hint**: Use Path -> Trace Bitmap to convert an image into a path using Inkscape
+ - Text and embedded raster images are preserved. Conversion to paths is optional and depends on the consuming laser software. External references and unresolved stylesheets must be resolved before ordered export.
  
 ![image](https://github.com/Off-the-Wall-Creations/LaserBatcher/assets/11471252/721b6483-ecba-4a55-b3c9-b7fc15edbd64)
 

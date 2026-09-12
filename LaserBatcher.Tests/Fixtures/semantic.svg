@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:custom="urn:example" width="1in" height="1in" viewBox="0 0 100 100" id="document" custom:provenance="retained">
+  <metadata><custom:license>Original license</custom:license></metadata>
+  <defs><clipPath id="clip"><rect x="0" y="0" width="100" height="100"/></clipPath><path id="motif" d="M40 40h10"/></defs>
+  <g id="mixed" transform="translate(1 1)" clip-path="url(#clip)">
+    <g id="outside" inkscape:groupmode="layer" inkscape:label="ExteriorCut">
+      <path id="outline" d="M5 5H90V90H5Z" fill="none" stroke="red"/>
+      <g id="hidden-in-cut" style="display:none" custom:note="keep"><circle id="hidden-circle" r="3"/></g>
+    </g>
+    <path id="art" inkscape:label="Engrave" d="M10 10h20" stroke="black"/>
+    <path id="hole" inkscape:label="InteriorCut" d="M20 20h5v5h-5z M21 21v2h2v-2z" fill-rule="evenodd" stroke="blue"/>
+    <use id="score" inkscape:label="Score" href="#motif" stroke="green"/>
+  </g>
+  <g id="zones" inkscape:label="CustomizationZones" style="display:none" data-laser-schema-version="1"><rect id="pet-name" inkscape:label="Pet Name" data-customization-type="text" width="30" height="10"/></g>
+  <g id="materials" inkscape:label="MaterialSpecs" style="display:none"><custom:profile id="wood" units="mm" thickness="3"/></g>
+  <g id="constraints" inkscape:label="DesignConstraints" style="display:none"><custom:fit material="#wood">Press</custom:fit></g>
+</svg>
