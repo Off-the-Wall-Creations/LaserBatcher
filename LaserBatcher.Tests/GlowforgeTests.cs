@@ -10,9 +10,9 @@ public class GlowforgeTests
     private static readonly XNamespace S = SvgBatchService.Svg;
     private static readonly XNamespace G = GlowforgeSettings.Namespace;
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name + ".svg"));
-    private static Dictionary<string, LaserOperation> Map(SvgAnalysis analysis) => analysis.Items.Where(i => i.Production).ToDictionary(i => i.Key,
-        i => i.Suggestion == "Score" ? LaserOperation.Score : i.Id is "one" or "three" or "relief" or "slot" or "hinge" or "openings" ? LaserOperation.InteriorCut : LaserOperation.ExteriorCut);
-    private static BatchResult Build(SvgAnalysis a, OrderingMode mode = OrderingMode.WithinEachCopy, int copies = 2, Dictionary<string, LaserOperation>? mappings = null) =>
+    private static Dictionary<string, SvgAssignment> Map(SvgAnalysis analysis) => analysis.Items.Where(i => i.Production).ToDictionary(i => i.Key,
+        i => i.Suggestion == "Score" ? SvgAssignment.Score : i.Id is "one" or "three" or "relief" or "slot" or "hinge" or "openings" ? SvgAssignment.InteriorCut : SvgAssignment.ExteriorCut);
+    private static BatchResult Build(SvgAnalysis a, OrderingMode mode = OrderingMode.WithinEachCopy, int copies = 2, Dictionary<string, SvgAssignment>? mappings = null) =>
         SvgBatchService.Build(a, "Fixture_x1.svg", new("Fixture", null, null, 1), new(50, 50, .2, .2, .1, copies, mode), mappings ?? Map(a));
 
     [Theory]
@@ -97,7 +97,7 @@ public class GlowforgeTests
         doc.Root!.SetAttributeValue("class", "lb-gf-step-0");
         var a = SvgBatchService.Analyze(doc.ToString());
         var map = Map(a);
-        map[a.Items.Single(i => i.Id == "three").Key] = LaserOperation.ExteriorCut;
+        map[a.Items.Single(i => i.Id == "three").Key] = SvgAssignment.ExteriorCut;
         var result = Build(a, copies: 1, mappings: map);
         var defs = result.Document.Descendants(G + "laserdef").ToArray();
         Assert.Equal(3, defs.Length);

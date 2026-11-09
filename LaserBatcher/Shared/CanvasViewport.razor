@@ -1,0 +1,44 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+<section class="canvas-panel" aria-label="Artwork workspace">
+    <div class="canvas-toolbar" role="group" aria-label="Canvas view">
+        <div class="button-group"><button class="btn btn-sm btn-outline-secondary" aria-pressed="@(View == "Source" ? "true" : "false")" @onclick='() => ViewChanged.InvokeAsync("Source")'>Source</button><button class="btn btn-sm btn-outline-secondary" disabled="@(!HasBatch)" aria-pressed="@(View == "Batch" ? "true" : "false")" @onclick='() => ViewChanged.InvokeAsync("Batch")'>Batch</button></div>
+        <button class="btn btn-sm btn-outline-secondary" @onclick='() => Command("fit")' disabled="@(ImageUrl == null)">Fit</button>
+        <button class="btn btn-sm btn-outline-secondary" aria-label="Zoom out" @onclick='() => Command("out")' disabled="@(ImageUrl == null)">−</button>
+        <output class="zoom-value" aria-label="Canvas zoom">@zoom.ToString("0.#")%</output>
+        <button class="btn btn-sm btn-outline-secondary" aria-label="Zoom in" @onclick='() => Command("in")' disabled="@(ImageUrl == null)">+</button>
+        <button class="btn btn-sm btn-outline-secondary" title="96 CSS pixels per inch" @onclick='() => Command("actual")' disabled="@(ImageUrl == null)">100%</button>
+        <label class="visually-hidden" for="woodColor">Material background</label><select id="woodColor" class="form-select form-select-sm material-select" value="@Background" @onchange="e => BackgroundChanged.InvokeAsync(e.Value!.ToString())"><option value="#8B4513">Red Oak</option><option value="#5D473A">Walnut</option><option value="#B22222">Cherry</option><option value="#FFFFFF">White</option><option value="#222222">Charcoal</option></select>
+    </div>
+    <div class="canvas-viewport" @ref="viewport" tabindex="0" role="region" aria-label="SVG canvas" aria-description="Drag or use arrow keys to pan. Plus and minus zoom, Home fits the artwork.">
+        <div class="canvas-paper" hidden="@(ImageUrl == null)" style="width:@(F(WidthPixels))px;height:@(F(HeightPixels))px;background:@Background">
+            <img src="@ImageUrl" alt="@(View == "Batch" ? "Ordered laser batch preview" : "Uploaded SVG source preview")" draggable="false" />
+        </div>
+        @if (ImageUrl == null) { <div class="canvas-empty"><img src="brand/laserbatcher.svg" width="72" height="72" alt="" /><p>@EmptyMessage</p><small>Files are processed locally in your browser.</small></div> }
+    </div>
+</section>
+@code {
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public double WidthPixels { get; set; }
+    [Parameter] public double HeightPixels { get; set; }
+    [Parameter] public string View { get; set; } = "Source";
+    [Parameter] public bool HasBatch { get; set; }
+    [Parameter] public EventCallback<string> ViewChanged { get; set; }
+    [Parameter] public string Background { get; set; } = "#8B4513";
+    [Parameter] public EventCallback<string> BackgroundChanged { get; set; }
+    [Parameter] public string EmptyMessage { get; set; } = "Open an SVG to begin.";
+    private ElementReference viewport;
+    private IJSObjectReference? module;
+    private DotNetObjectReference<CanvasViewport>? reference;
+    private string? previousUrl;
+    private double zoom = 100;
+    private static string F(double value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) { module = await JS.InvokeAsync<IJSObjectReference>("import", "./canvasViewport.js"); reference = DotNetObjectReference.Create(this); await module.InvokeVoidAsync("initialize", viewport, reference); }
+        if (previousUrl != ImageUrl) { previousUrl = ImageUrl; await module!.InvokeVoidAsync("setImage", viewport, WidthPixels, HeightPixels); }
+    }
+    private async Task Command(string value) { if (module != null) await module.InvokeVoidAsync("command", viewport, value); }
+    [JSInvokable] public Task ZoomChanged(double value) { zoom = value; return InvokeAsync(StateHasChanged); }
+    public async ValueTask DisposeAsync() { if (module != null) { await module.InvokeVoidAsync("dispose", viewport); await module.DisposeAsync(); } reference?.Dispose(); }
+}
+

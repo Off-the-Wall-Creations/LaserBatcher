@@ -12,7 +12,7 @@ public class SvgBatchTests
     private static SvgAnalysis Fixture() => SvgBatchService.Analyze(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "semantic.svg")));
     private static SvgAnalysis Analyze(string body, string attributes = "") => SvgBatchService.Analyze($"<svg xmlns='{S}' width='1in' height='1in' {attributes}>{body}</svg>");
     private static BatchSettings Settings(OrderingMode mode = OrderingMode.WithinEachCopy, int copies = 2) => new(4, 3, .25, .25, .1, copies, mode);
-    private static BatchResult Build(SvgAnalysis a, OrderingMode mode = OrderingMode.WithinEachCopy, int copies = 2, Dictionary<string, LaserOperation>? map = null) => SvgBatchService.Build(a, "Widget_x4.svg", new("Widget", null, null, 4), Settings(mode, copies), map ?? new());
+    private static BatchResult Build(SvgAnalysis a, OrderingMode mode = OrderingMode.WithinEachCopy, int copies = 2, Dictionary<string, SvgAssignment>? map = null) => SvgBatchService.Build(a, "Widget_x4.svg", new("Widget", null, null, 4), Settings(mode, copies), map ?? new());
 
     [Theory]
     [InlineData(OrderingMode.WithinEachCopy, "Engrave,Score,InteriorCut,ExteriorCut,Engrave,Score,InteriorCut,ExteriorCut")]
@@ -54,8 +54,8 @@ public class SvgBatchTests
         Assert.Throws<FormatException>(() => Build(a));
         var group = a.Items.Single(i => i.Id == "InsideCut");
         var b = a.Items.Single(i => i.Id == "b");
-        var map = new Dictionary<string, LaserOperation> { [group.Key] = LaserOperation.InteriorCut, [b.Key] = LaserOperation.Engrave };
-        Assert.Equal(LaserOperation.Engrave, SvgBatchService.Resolve(a, map)[b.Key]);
+        var map = new Dictionary<string, SvgAssignment> { [group.Key] = SvgAssignment.InteriorCut, [b.Key] = SvgAssignment.Engrave };
+        Assert.Equal(SvgAssignment.Engrave, SvgBatchService.Resolve(a, map)[b.Key]);
         Assert.NotNull(Build(a, map: map));
         var conflict = Analyze("<g id='Engrave'><path id='ExteriorCut' d='M0 0h1'/></g>");
         Assert.Null(conflict.Items.Single(i => i.Production).Operation);
@@ -114,7 +114,7 @@ public class SvgBatchTests
     public void MetadataUsesCanonicalFilenameValuesAndIdsForUnlabelledHiddenElements()
     {
         var a = Analyze("<g style='display:none'><path/></g><path id='Engrave'/>");
-        var result = SvgBatchService.Build(a, "Source.svg", new(" _ Widget _ ", " A ", null, 1), Settings(), new Dictionary<string, LaserOperation>());
+        var result = SvgBatchService.Build(a, "Source.svg", new(" _ Widget _ ", " A ", null, 1), Settings(), new Dictionary<string, SvgAssignment>());
         var json = JsonDocument.Parse(result.Document.Root!.Element(S + "metadata")!.Element(SvgBatchService.MetadataNamespace + "batch")!.Value).RootElement;
         Assert.Equal("Widget", json.GetProperty("program").GetProperty("partName").GetString());
         Assert.Equal("A", json.GetProperty("program").GetProperty("orderNumber").GetString());
@@ -143,7 +143,7 @@ public class SvgBatchTests
     {
         var source = Analyze("<g id='Engrave'><path id='ExteriorCut'/></g>");
         var leaf = source.Items.Single(i => i.Production);
-        var result = Build(source, map: new() { [leaf.Key] = LaserOperation.Score });
+        var result = Build(source, map: new() { [leaf.Key] = SvgAssignment.Score });
         Assert.Contains(result.Document.Descendants(), e => (string?)e.Attribute("data-laserbatcher-original-label") == "ExteriorCut");
         var reimported = SvgBatchService.Analyze(result.Document.ToString());
         Assert.All(reimported.Items.Where(i => i.Production), i => Assert.Equal(LaserOperation.Score, i.Operation));

@@ -1,0 +1,18 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+<dialog class="workspace-dialog" @ref="element" aria-labelledby="@titleId">
+    <header class="dialog-header"><h2 id="@titleId">@Title</h2><button type="button" class="btn btn-outline-secondary btn-sm" aria-label="@($"Close {Title}")" @onclick="CloseAsync">✕</button></header>
+    <div class="dialog-body">@ChildContent</div>
+    @if (Actions != null) { <footer class="dialog-actions">@Actions</footer> }
+</dialog>
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    private readonly string titleId = "dialog-" + Guid.NewGuid().ToString("N");
+    private ElementReference element;
+    private IJSObjectReference? module;
+    public async Task OpenAsync() { module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./workspace.js"); await module.InvokeVoidAsync("openDialog", element); }
+    public async Task CloseAsync() { if (module != null) await module.InvokeVoidAsync("closeDialog", element); }
+    public async ValueTask DisposeAsync() { if (module != null) await module.DisposeAsync(); }
+}

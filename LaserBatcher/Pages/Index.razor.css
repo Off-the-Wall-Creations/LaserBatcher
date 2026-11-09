@@ -1,12 +1,1 @@
-.svg-workspace { max-width: 100%; max-height: 85vh; overflow: auto; padding: 12px; }
-.svg-preview { border: 1px solid var(--lb-border); overflow: hidden; position: relative; background-color: var(--wood-color); }
-.mapping-list { max-height: 32rem; }
-.mapping-list thead { position: sticky; top: 0; background: var(--lb-panel); z-index: 1; }
-.mapping-list td { vertical-align: middle; }
-.mapping-list tr[hidden] { display: none !important; }
-.mapping-element { display: flex; align-items: center; gap: .75rem; min-width: 18rem; }
-.mapping-thumbnail { flex: 0 0 96px; object-fit: contain; border: 1px solid var(--lb-border); border-radius: 8px; background-color: #e9ecef; background-image: conic-gradient(#ced4da 25%, transparent 0 50%, #ced4da 0 75%, transparent 0); background-size: 12px 12px; font-size: .65rem; color: #343a40; }
-.mapping-disclosure { width: 2rem; height: 2rem; flex: none; padding: 0; }
-.mapping-list select { min-width: 12rem; }
-.mapping-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
-.mapping-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Workspace styles are shared with the canvas, mapping and dialog components in css/workspace.css. */

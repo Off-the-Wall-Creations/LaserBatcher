@@ -59,7 +59,7 @@ public class MetadataTests
         var source = SvgMetadataService.Update(Batch(), new("Widget", null, null, 7), 90).Document;
         source.Descendants(S + "style").Remove();
         var a = SvgBatchService.Analyze(source.ToString());
-        var map = a.Items.Where(i => i.Production).ToDictionary(i => i.Key, _ => LaserOperation.ExteriorCut);
+        var map = a.Items.Where(i => i.Production).ToDictionary(i => i.Key, _ => SvgAssignment.ExteriorCut);
         var result = SvgBatchService.Build(a, "Widget_x7.svg", a.Metadata!.Program, new(30, 20, 0, 0, 0, 3, OrderingMode.WithinEachCopy), map);
         var read = SvgMetadataService.Read(result.Document);
         Assert.Empty(read.Warnings);

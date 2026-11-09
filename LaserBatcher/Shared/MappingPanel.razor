@@ -1,0 +1,93 @@
+@using LaserBatcher.Services
+@using LaserBatcher.Models
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+<dialog class="mapping-panel" @ref="panel" aria-labelledby="mapping-title">
+    <header class="mapping-header"><h2 id="mapping-title">Operation mapping</h2><button class="btn btn-sm btn-outline-secondary" aria-label="Close operation mapping" @onclick="Close">✕</button></header>
+    <div class="mapping-tools">
+        <div class="button-group"><button class="btn btn-sm btn-outline-secondary" @onclick="() => collapsed.Clear()">Expand all</button><button class="btn btn-sm btn-outline-secondary" @onclick="() => collapsed.UnionWith(descendants.Keys)">Collapse all</button></div>
+        <label class="visually-hidden" for="previewMode">Mapping preview mode</label><select id="previewMode" class="form-select form-select-sm" @bind="mode" @bind:after="ModeChanged"><option value="enhanced">Enhanced</option><option value="original">Original</option></select>
+    </div>
+    <p class="mapping-totals">@Resolved.Count(p => p.Value != null && p.Value != SvgAssignment.Ignore) included · @Resolved.Count(p => p.Value == SvgAssignment.Ignore) ignored · @Resolved.Count(p => p.Value == null) unresolved</p>
+    <details class="mapping-inspector" open>
+        <summary>Element inspection</summary>
+        <img @key="Analysis" @ref="inspector" class="inspector-image" alt="@(selected == null ? "Select a thumbnail to inspect an element" : $"Inspection of {selected.Label}")" hidden="@(selected == null)" />
+        <p class="inspection-label">@(selected?.Label ?? "Select a thumbnail below to inspect it here.")</p>
+        <small>@(mode == "enhanced" ? "Enhanced inspection view. Production styling is unchanged." : "Original production styling.")</small>
+    </details>
+    <div class="mapping-list" @ref="list">
+        <table class="table table-sm"><thead class="visually-hidden"><tr><th scope="col">Element / layer and assignment</th></tr></thead><tbody>
+        @foreach (var item in items)
+        {
+            var group = descendants.TryGetValue(item.Key, out var keys);
+            var assignment = Resolved.GetValueOrDefault(item.Key);
+            <tr @key="item.Key" data-key="@item.Key" data-depth="@Depth(item)" hidden="@ancestors[item.Key].Any(collapsed.Contains)" class="@(assignment == SvgAssignment.Ignore ? "ignored-row" : "")"><td>
+                <div class="mapping-entry" style="--depth:@Math.Min(Depth(item), 5)">
+                    @if (group) { <button class="btn btn-sm btn-outline-secondary mapping-disclosure" aria-label="@($"{(collapsed.Contains(item.Key) ? "Expand" : "Collapse")} {item.Label} ({item.Key})")" aria-expanded="@(collapsed.Contains(item.Key) ? "false" : "true")" @onclick="() => Toggle(item.Key)">@(collapsed.Contains(item.Key) ? "▸" : "▾")</button> }
+                    else { <span class="disclosure-spacer"></span> }
+                    <button class="thumbnail-button" disabled="@(Analysis?.Errors.Any() != false)" aria-label="@($"Inspect {item.Label} ({item.Key})")" aria-pressed="@(selected?.Key == item.Key ? "true" : "false")" @onclick="() => Select(item)"><img @key="Analysis" data-source-key="@item.Key" class="mapping-thumbnail" alt="@($"Preview of {item.Label}")" width="64" height="48" /></button>
+                    <div class="mapping-label"><strong title="@item.Label">@item.Label</strong><small>@(item.Production ? assignment == SvgAssignment.Ignore ? "Ignored" : assignment?.ToString() ?? "Unresolved" : "Group") · @item.Element</small>
+                    @if (group) { <small class="mapping-count">@keys!.Count production · @keys.Count(k => Resolved.GetValueOrDefault(k) == SvgAssignment.Ignore) ignored · @keys.Count(k => Resolved.GetValueOrDefault(k) == null) unresolved</small> }
+                    @if (item.Suggestion != null) { <small>Suggested: @item.Suggestion</small> }</div>
+                    <select class="form-select form-select-sm mapping-assignment" aria-label="@($"Operation for {item.Label} ({item.Key})")" value="@(Mappings.TryGetValue(item.Key, out var value) ? value.ToString() : "")" @onchange="e => Changed.InvokeAsync(new MappingChange(item.Key, e.Value?.ToString()))"><option value="">From source / parent</option>@foreach (var operation in Enum.GetValues<SvgAssignment>()) { <option value="@operation">@operation</option> }</select>
+                </div>
+            </td></tr>
+        }
+        </tbody></table>
+        @if (Analysis == null) { <p class="p-3 text-muted">Open an SVG to review its layers and assignments.</p> }
+    </div>
+</dialog>
+@code {
+    [Parameter] public SvgAnalysis? Analysis { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, SvgAssignment?> Resolved { get; set; } = new Dictionary<string, SvgAssignment?>();
+    [Parameter] public IReadOnlyDictionary<string, SvgAssignment> Mappings { get; set; } = new Dictionary<string, SvgAssignment>();
+    [Parameter] public EventCallback<MappingChange> Changed { get; set; }
+    [Parameter] public EventCallback Collapse { get; set; }
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public bool Enabled { get; set; } = true;
+    private readonly HashSet<string> collapsed = new();
+    private readonly Dictionary<string, List<string>> descendants = new(), ancestors = new();
+    private IReadOnlyList<SvgItem> items = Array.Empty<SvgItem>();
+    private SvgAnalysis? indexed, initialized;
+    private SvgItem? selected;
+    private ElementReference panel, list, inspector;
+    private IJSObjectReference? workspace, previews;
+    private string mode = "enhanced";
+    private static int Depth(SvgItem item) => item.Key.Count(c => c == '/');
+    protected override void OnParametersSet() {
+        if (indexed == Analysis) return;
+        indexed = Analysis; collapsed.Clear(); descendants.Clear(); ancestors.Clear(); selected = null; items = Array.Empty<SvgItem>();
+        if (Analysis == null) return;
+        var byKey = Analysis.Items.ToDictionary(i => i.Key);
+        foreach (var item in Analysis.Items) {
+            var parents = new List<string>(); var parent = item.Parent;
+            while (parent != null && byKey.TryGetValue(parent, out var ancestor)) {
+                parents.Add(parent);
+                if (item.Production && !ancestor.Hidden && (ancestor.Element is "g" or "svg")) {
+                    if (!descendants.TryGetValue(parent, out var children)) descendants[parent] = children = new();
+                    children.Add(item.Key);
+                }
+                parent = ancestor.Parent;
+            }
+            ancestors[item.Key] = parents;
+        }
+        items = Analysis.Items.Where(i => i.Production || descendants.ContainsKey(i.Key)).ToArray();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        workspace ??= await JS.InvokeAsync<IJSObjectReference>("import", "./workspace.js");
+        await workspace.InvokeVoidAsync("syncPanel", panel, Compact, Enabled);
+        if (initialized == Analysis) return;
+        if (previews != null) await previews.InvokeVoidAsync("dispose", list);
+        initialized = Analysis;
+        if (Analysis == null || Analysis.Errors.Any()) return;
+        previews ??= await JS.InvokeAsync<IJSObjectReference>("import", "./mappingPreviews.js");
+        await previews.InvokeVoidAsync("initialize", list, Analysis.Document.ToString(), mode);
+    }
+    private void Toggle(string key) { if (!collapsed.Remove(key)) collapsed.Add(key); }
+    private async Task ModeChanged() { if (previews != null) { await previews.InvokeVoidAsync("setMode", list, mode); if (selected != null) await previews.InvokeVoidAsync("inspect", list, selected.Key, inspector); } }
+    private async Task Select(SvgItem item) { selected = item; if (previews != null) await previews.InvokeVoidAsync("inspect", list, item.Key, inspector); }
+    public async Task OpenDrawerAsync() { if (workspace != null) await workspace.InvokeVoidAsync("openDialog", panel); }
+    private async Task Close() { if (Compact && workspace != null) await workspace.InvokeVoidAsync("closeDialog", panel); else await Collapse.InvokeAsync(); }
+    public async ValueTask DisposeAsync() { if (previews != null) { await previews.InvokeVoidAsync("dispose", list); await previews.DisposeAsync(); } if (workspace != null) await workspace.DisposeAsync(); }
+}
+

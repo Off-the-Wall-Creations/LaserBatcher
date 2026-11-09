@@ -1,0 +1,15 @@
+@using LaserBatcher.Models
+<div class="program-fields compact-fields">
+    <div><label for="@(Prefix + "partName")">Part (optional)</label><input id="@(Prefix + "partName")" class="form-control form-control-sm" @bind="Value.PartName" @bind:after="NotifyChanged" /></div>
+    <div><label for="@(Prefix + "orderNumber")">Order (optional)</label><input id="@(Prefix + "orderNumber")" class="form-control form-control-sm" @bind="Value.OrderNumber" @bind:after="NotifyChanged" /></div>
+    <div><label for="@(Prefix + "batch")">Batch (optional)</label><input id="@(Prefix + "batch")" class="form-control form-control-sm" @bind="Value.Batch" @bind:after="NotifyChanged" /></div>
+    <div><label for="@(Prefix + "sourceYield")">@(EditingMetadata ? "Total yield" : "Parts / source")</label><input id="@(Prefix + "sourceYield")" class="form-control form-control-sm" type="number" min="1" max="2147483647" @bind="Value.Yield" @bind:after="NotifyChanged" /></div>
+</div>
+@code {
+    [Parameter, EditorRequired] public ProgramForm Value { get; set; } = default!;
+    [Parameter] public string Prefix { get; set; } = "";
+    [Parameter] public bool EditingMetadata { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+    private Task NotifyChanged() => Changed.InvokeAsync();
+}
+

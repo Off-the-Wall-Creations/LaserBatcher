@@ -1,14 +1,12 @@
-.page { min-height: 100vh; max-width: 100rem; margin-inline: auto; padding-inline: clamp(1rem, 3vw, 3rem); }
-.app-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; padding-block: 1.5rem; border-bottom: 1px solid var(--lb-border); }
-.brand { display: flex; align-items: center; gap: .75rem; }
+.page { height: 100dvh; display: grid; grid-template-rows: auto minmax(0,1fr); overflow: hidden; }
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .4rem .8rem; border-bottom: 1px solid var(--lb-border); background: var(--lb-panel); }
+.brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
 .brand img { flex: none; }
-.brand h1 { font-size: clamp(1.5rem, 3vw, 2rem); margin: 0; letter-spacing: -.035em; }
-.brand p { color: var(--lb-muted); margin: .2rem 0 0; font-size: .875rem; }
-.content { padding-block: 1.5rem; }
-.app-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--lb-border); padding-block: 1.5rem; }
-.app-footer h2 { font-size: 1rem; margin-bottom: .5rem; }
-.app-footer p { color: var(--lb-muted); margin: 0; }
+.brand h1 { font-size: 1.15rem; margin: 0; letter-spacing: -.035em; }
+.brand p { color: var(--lb-muted); margin: 0; font-size: .7rem; }
+main, .content { height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 @media (max-width: 575px) {
-    .app-footer { flex-direction: column; text-align: center; }
-    .app-header ::deep .appearance-control { width: 100%; }
+    .app-header { gap: .25rem; padding: .35rem .5rem; }
+    .app-header ::deep .appearance-control label { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+    .app-header ::deep .appearance-control select { min-width: 5.5rem; padding-block: .25rem; font-size: .8rem; }
 }

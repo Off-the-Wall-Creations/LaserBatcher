@@ -54,7 +54,7 @@ public class SvgSerializerTests
     public void BatchExportWithSourceSvgAliasHasOneUnprefixedRootAndGeometry()
     {
         var source = SvgBatchService.Analyze($"<svg xmlns='{SvgBatchService.Svg}' xmlns:svg='{SvgBatchService.Svg}' width='1in' height='1in' viewBox='0 0 100 100'><svg:g id='Engrave'><svg:path d='M10 10h20'/></svg:g></svg>");
-        var result = SvgBatchService.Build(source, "Part_x1.svg", new("Part", null, null, 1), new(4, 3, 0, 0, .1, 2, OrderingMode.WithinEachCopy), new Dictionary<string, LaserOperation>());
+        var result = SvgBatchService.Build(source, "Part_x1.svg", new("Part", null, null, 1), new(4, 3, 0, 0, .1, 2, OrderingMode.WithinEachCopy), new Dictionary<string, SvgAssignment>());
         var xml = SvgSerializer.Serialize(result.Document);
         AssertUnprefixedSvg(xml);
         var parsed = XDocument.Parse(xml);

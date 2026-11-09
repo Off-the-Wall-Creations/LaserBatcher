@@ -19,7 +19,8 @@ const url = new URL(process.env.LASERBATCHER_URL || 'http://localhost:5193/');
     assert.equal(await page.evaluate(() => document.baseURI), url.origin + '/');
     assert.deepEqual(failedAssets, [], 'Page resources load from the correct base path');
     for (const [asset, type] of [['manifest.json', 'application/json'], ['_framework/blazor.webassembly.js', 'javascript'],
-      ['service-worker.js', 'javascript'], ['css/app.css', 'text/css']]) {
+      ['service-worker.js', 'javascript'], ['css/app.css', 'text/css'], ['css/workspace.css', 'text/css'],
+      ['workspace.js', 'javascript'], ['canvasViewport.js', 'javascript'], ['mappingPreviews.js', 'javascript']]) {
       const response = await context.request.get(new URL(asset, url.origin).href);
       assert.equal(response.status(), 200, asset);
       assert(response.headers()['content-type'].includes(type), `${asset} must not be an HTML fallback`);
@@ -37,6 +38,15 @@ const url = new URL(process.env.LASERBATCHER_URL || 'http://localhost:5193/');
     assert(await page.evaluate(() => !!navigator.serviceWorker.controller));
     await context.setOffline(true); await page.reload(); await page.locator('.app-header h1').waitFor();
     assert.equal(await page.locator('.app-header h1').innerText(), 'LaserBatcher');
+    const cached = await page.evaluate(async () => Promise.all(['workspace.js', 'canvasViewport.js', 'mappingPreviews.js', 'css/workspace.css'].map(async path => (await fetch(path)).ok)));
+    assert(cached.every(Boolean), 'Canvas modules remain available offline');
+    await page.locator('#svgUpload').setInputFiles({ name: 'Offline.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1in" height="1in"><path id="Score" d="M1 1h10" stroke="black"/></svg>') });
+    await page.getByAltText('Uploaded SVG source preview').waitFor();
+    await page.getByRole('button', { name: /^Runtime/ }).click();
+    await page.getByRole('dialog', { name: 'Estimated Runtime', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'Render batch', exact: true }).click();
+    await page.getByAltText('Ordered laser batch preview').waitFor();
     assert.deepEqual(errors, []);
     await context.close();
     console.log('Root resource URLs, content types, CNAME, worker scope, integrity installation and offline reload passed.');

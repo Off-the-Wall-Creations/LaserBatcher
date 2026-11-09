@@ -107,31 +107,31 @@ async function download(page) {
     const totalRows = await page.locator('tr[data-key]').count();
     assert.equal(await row('0/10/0').locator('img').getAttribute('data-preview-ready'), null, 'Offscreen thumbnail starts lazy');
     await row('0/1/0/0').evaluate(el => window.retainedMappingRow = el);
-    assert((await row('0').innerText()).includes('11 production · 11 unresolved'));
-    await row('0/1/0').getByRole('button').click();
-    await row('0/1').getByRole('button').click();
+    assert((await row('0').innerText()).includes('11 production · 0 ignored · 11 unresolved'));
+    await row('0/1/0').locator('.mapping-disclosure').click();
+    await row('0/1').locator('.mapping-disclosure').click();
     assert(await row('0/1/0').isHidden());
     assert(await row('0/10').isVisible(), '0/1 must not hide sibling 0/10');
     assert.equal(await page.locator('tr[data-key]').count(), totalRows, 'Rows remain mounted');
     assert(await row('0/1/0/0').evaluate(el => el === window.retainedMappingRow), 'Collapse preserves DOM identity');
-    assert((await row('0/1').innerText()).includes('2 production · 2 unresolved'));
+    assert((await row('0/1').innerText()).includes('2 production · 0 ignored · 2 unresolved'));
     assert(await page.getByRole('button', { name: 'Render batch', exact: true }).isDisabled());
-    await row('0/1').getByRole('button').click();
+    await row('0/1').locator('.mapping-disclosure').click();
     assert(await row('0/1/0').isVisible());
     assert(await row('0/1/0/0').isHidden(), 'Nested collapse survives parent reopening');
-    await row('0/1/0').getByRole('button').focus(); await page.keyboard.press('Enter');
-    assert.equal(await row('0/1/0').getByRole('button').getAttribute('aria-expanded'), 'true');
+    await row('0/1/0').locator('.mapping-disclosure').focus(); await page.keyboard.press('Enter');
+    assert.equal(await row('0/1/0').locator('.mapping-disclosure').getAttribute('aria-expanded'), 'true');
     await row('0/1/0/0').getByRole('combobox').selectOption('Score');
-    await row('0/1').getByRole('button').click();
+    await row('0/1').locator('.mapping-disclosure').click();
     await row('0/1').getByRole('combobox').selectOption('Engrave');
-    assert((await row('0/1').innerText()).includes('2 production · 0 unresolved'));
+    assert((await row('0/1').innerText()).includes('2 production · 0 ignored · 0 unresolved'));
     await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
     assert.equal(await page.locator('tr[data-key]:visible').count(), 1);
     await row('0').getByRole('combobox').selectOption('ExteriorCut');
-    assert((await row('0').innerText()).includes('11 production · 0 unresolved'));
+    assert((await row('0').innerText()).includes('11 production · 0 ignored · 0 unresolved'));
     assert(!(await page.getByRole('button', { name: 'Render batch', exact: true }).isDisabled()));
-    await row('0').getByRole('button').click();
-    assert.equal(await row('0/1').getByRole('button').getAttribute('aria-expanded'), 'false');
+    await row('0').locator('.mapping-disclosure').click();
+    assert.equal(await row('0/1').locator('.mapping-disclosure').getAttribute('aria-expanded'), 'false');
     // Tab cannot enter controls on hidden descendants.
     await row('0/1').getByRole('combobox').focus(); await page.keyboard.press('Tab');
     assert(await page.evaluate(() => !document.activeElement.closest('tr[hidden]')));
@@ -141,7 +141,7 @@ async function download(page) {
     await row('0/10/0').scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('img[data-source-key="0/10/0"]')?.dataset.previewReady === 'true');
     const cachedThumbnail = await row('0/10/0').locator('img').getAttribute('src');
-    await page.locator('#runtimeHours').fill('25'); await page.locator('#runtimeHours').blur();
+    await page.getByRole('button', { name: /^Runtime/ }).click(); await page.locator('#runtimeHours').fill('25'); await page.locator('#runtimeHours').blur(); await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.locator('dialog:modal').waitFor({ state: 'hidden' });
     await page.getByRole('button', { name: 'Render batch', exact: true }).click();
     const image = page.getByAltText('Ordered laser batch preview'); await image.waitFor();
     const before = await image.getAttribute('src');
@@ -152,7 +152,7 @@ async function download(page) {
     assert.equal(await download(page), exported, 'Collapse must not change exported content');
     await theme(page, 'dark');
     assert.equal(await image.getAttribute('src'), before, 'Theme must not recolor source artwork');
-    assert.equal(await page.locator('.svg-preview').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(139, 69, 19)');
+    assert.equal(await page.locator('.canvas-paper').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(139, 69, 19)');
     await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     assert.equal(await row('0/10/0').locator('img').getAttribute('src'), cachedThumbnail);
     assert.equal(await page.locator('#runtimeHours').inputValue(), '25');
@@ -163,25 +163,25 @@ async function download(page) {
     await theme(page, 'light');
     await page.screenshot({ path: path.join(artifacts, 'identity-light.png'), fullPage: true, animations: 'disabled' });
     assert.equal(await page.getByRole('button', { name: 'Render batch', exact: true }).evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(154, 76, 10)');
-    assert.equal(await page.getByRole('button', { name: 'Clear estimate', exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(41, 37, 36)');
+    assert.equal(await page.getByRole('button', { name: 'Clear preview', exact: true }).evaluate(el => getComputedStyle(el).color), 'rgb(41, 37, 36)');
     for (const width of [320, 390, 768]) {
       await page.setViewportSize({ width, height: 900 });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `No page overflow at ${width}px`);
       if (width === 390) await page.screenshot({ path: path.join(artifacts, 'identity-mobile.png'), fullPage: true, animations: 'disabled' });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.evaluate(() => document.body.style.zoom = '2');
+    await page.setViewportSize({ width: 720, height: 500 }); // CSS viewport at 200% browser zoom
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '200% layout zoom');
     await page.screenshot({ path: path.join(artifacts, 'identity-zoom.png'), fullPage: true });
-    await page.evaluate(() => document.body.style.zoom = '');
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator('#svgUpload').setInputFiles({ name: 'Groups_x1.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(exported) });
     await page.waitForFunction(() => document.querySelector('#workMode').value === 'EditMetadata');
     await page.locator('#workMode').selectOption('CreateBatch');
     assert.equal(await page.locator('tr[data-key][hidden]').count(), 0, 'New upload resets collapse state');
-    await row('0').getByRole('button').click();
+    await row('0').locator('.mapping-disclosure').click();
     await page.locator('#workMode').selectOption('EditMetadata');
     await page.locator('#workMode').selectOption('CreateBatch');
-    assert.equal(await row('0').getByRole('button').getAttribute('aria-expanded'), 'false', 'Workflow switches retain collapse state');
+    assert.equal(await row('0').locator('.mapping-disclosure').getAttribute('aria-expanded'), 'false', 'Workflow switches retain collapse state');
     assert.equal(await page.locator('tr[data-key]:visible').count(), 1);
     assert.deepEqual(errors, []);
     console.log('Identity, nested mapping state, keyboard access, unchanged runtime/exports, mobile and zoom passed.');
@@ -227,9 +227,9 @@ async function download(page) {
       assert(await frame.evaluate(() => document.fonts.check('28px Cookie')), 'Live Cookie font loads');
     }
     await theme(widgetPage, 'dark'); assert.equal(vendorRequests, 1);
-    await widgetPage.locator('.app-footer').screenshot({ path: path.join(artifacts, 'coffee-rendered.png') });
+    await widgetPage.locator('.workspace-footer').screenshot({ path: path.join(artifacts, 'coffee-rendered.png') });
     await widgetPage.setViewportSize({ width: 320, height: 900 });
-    await widgetPage.locator('.app-footer').screenshot({ path: path.join(artifacts, 'coffee-mobile.png'), animations: 'disabled' });
+    await widgetPage.locator('.workspace-footer').screenshot({ path: path.join(artifacts, 'coffee-mobile.png'), animations: 'disabled' });
     assert(await frame.evaluate(() => { const r = document.querySelector('.bmc-btn').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }), 'Widget fits a 320px screen');
     // Dispose removes the listener; a late message from the old iframe is ignored.
     await widgetPage.evaluate(async () => { const container = document.querySelector('.support-widget'); await (await import('./supportButton.js')).dispose(container); delete container.dataset.supportReady; });

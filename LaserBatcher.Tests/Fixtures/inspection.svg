@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2in" height="1in" viewBox="0 0 192 96" id="Document">
+ <defs><clipPath id="clip"><rect width="36" height="30"/></clipPath></defs>
+ <metadata><license xmlns="urn:inspection">Keep license</license></metadata>
+ <g id="Parent"><g id="Nested" transform="translate(5,5)"><path id="thin" d="M0 0h60" fill="none" stroke="white" stroke-width="0.01"/></g><path id="vertical" d="M80 5v60" fill="none" stroke="#eee" stroke-width="0.1"/></g>
+ <g id="Original" transform="translate(10,20)"><path id="thick" d="M5 10h35" fill="none" stroke="red" stroke-width="12" stroke-linecap="round"/><path id="compound" d="M60 0h20v20h-20z M65 5v10h10v-10z" fill="orange" fill-rule="evenodd" stroke="none"/></g>
+ <g id="Clipped" transform="translate(110,10)" clip-path="url(#clip)"><path id="dashed" d="M0 10h60" fill="none" stroke="blue" stroke-width="2" stroke-dasharray="5 2"/></g>
+ <use id="Clone" href="#Original" transform="translate(0,35)"/>
+ <text id="Text" x="130" y="65" fill="#eee" font-size="12">Cut</text>
+ <image id="Raster" x="160" y="70" width="10" height="10" opacity="0.4" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII="/>
+ <g id="watermark" display="none"><path d="M0 0h30"/><metadata><note xmlns="urn:inspection">Keep hidden</note></metadata></g>
+</svg>

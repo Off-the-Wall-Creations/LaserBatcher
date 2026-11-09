@@ -8,6 +8,7 @@ using System.Xml.Linq;
 namespace LaserBatcher.Services;
 
 public enum LaserOperation { Engrave, Score, InteriorCut, ExteriorCut }
+public enum SvgAssignment { Engrave, Score, InteriorCut, ExteriorCut, Ignore }
 public enum OrderingMode { WithinEachCopy, AcrossSheet }
 public sealed record BatchSettings(double Width, double Height, double HorizontalMargin, double VerticalMargin, double Spacing, int Copies, OrderingMode Ordering);
 public sealed record SvgItem(string Key, string? Id, string Label, string? Parent, string Element, bool Hidden, string Visibility, string? SemanticCategory, bool Production, LaserOperation? Operation, string? Suggestion);
@@ -116,18 +117,20 @@ public static class SvgBatchService
         return 0;
     }
 
-    public static IReadOnlyDictionary<string, LaserOperation?> Resolve(SvgAnalysis analysis, IReadOnlyDictionary<string, LaserOperation> mappings)
+    public static IReadOnlyDictionary<string, SvgAssignment?> Resolve(SvgAnalysis analysis, IReadOnlyDictionary<string, SvgAssignment> mappings)
     {
+        var byKey = analysis.Items.ToDictionary(i => i.Key);
+        if (mappings.Values.Any(value => !Enum.IsDefined(typeof(SvgAssignment), value))) throw new FormatException("Unknown SVG assignment.");
         return analysis.Items.Where(i => i.Production).ToDictionary(i => i.Key, i =>
         {
             var item = i;
             while (true)
             {
-                if (mappings.TryGetValue(item.Key, out var op)) return (LaserOperation?)op;
+                if (mappings.TryGetValue(item.Key, out var op)) return (SvgAssignment?)op;
                 if (item.Parent == null) break;
-                item = analysis.Items.First(p => p.Key == item.Parent);
+                item = byKey[item.Parent];
             }
-            return i.Operation;
+            return i.Operation == null ? null : (SvgAssignment?)i.Operation.Value;
         });
     }
 
@@ -144,25 +147,38 @@ public static class SvgBatchService
         if (new[] { s.Width, s.Height, s.HorizontalMargin, s.VerticalMargin, s.Spacing }.Any(n => !double.IsFinite(n)) || s.Width <= 0 || s.Height <= 0 || s.HorizontalMargin < 0 || s.VerticalMargin < 0 || s.Spacing < 0 || s.Copies < 1) throw new FormatException("Sheet dimensions and copies must be positive; margins and spacing must be nonnegative.");
     }
 
-    public static BatchResult Build(SvgAnalysis analysis, string sourceFilename, ProgramMetadata sourceProgram, BatchSettings settings, IReadOnlyDictionary<string, LaserOperation> mappings, long? estimatedRuntimeSeconds = null)
+    public static BatchResult Build(SvgAnalysis analysis, string sourceFilename, ProgramMetadata sourceProgram, BatchSettings settings, IReadOnlyDictionary<string, SvgAssignment> mappings, long? estimatedRuntimeSeconds = null)
     {
         EstimatedRuntime.Validate(estimatedRuntimeSeconds);
         if (analysis.Errors.Any()) throw new FormatException(string.Join(" ", analysis.Errors));
         var filename = ProgramNameParser.Format(ProgramNameParser.Total(sourceProgram, settings.Copies));
         var total = ProgramNameParser.Parse(filename);
         if (settings.Copies > Capacity(analysis, settings)) throw new FormatException("The requested copies do not fit within the sheet margins.");
-        var resolved = Resolve(analysis, mappings);
-        if (!resolved.Any()) throw new FormatException("No visible production geometry was found.");
+        var assignments = Resolve(analysis, mappings);
+        var ignored = assignments.Where(p => p.Value == SvgAssignment.Ignore).Select(p => p.Key).ToHashSet();
+        var resolved = assignments.Where(p => p.Value != SvgAssignment.Ignore).ToDictionary(p => p.Key, p => p.Value);
+        if (!resolved.Any()) throw new FormatException("Include at least one production element.");
         if (resolved.Any(p => p.Value == null)) throw new FormatException("Assign operations to all unresolved production elements before export.");
         var glowforgeBindings = analysis.Glowforge.Steps.SelectMany(s => s.ArtworkKeys.Select(k => (Key: k, s.Class))).ToDictionary(p => p.Key, p => p.Class);
         if (analysis.Glowforge.Steps.Count > 0 && resolved.Keys.Any(k => !glowforgeBindings.ContainsKey(k)))
             throw new FormatException("Visible artwork has no Glowforge settings binding. Configure it in the source before exporting native ordered steps.");
-        var root = analysis.Document.Root!;
-        var activeBuckets = resolved.Values.Select(o => (int)o!.Value).Distinct().OrderBy(o => o).ToArray();
-        var refs = References(root).ToHashSet();
+        var root = new XElement(analysis.Document.Root!);
         var keys = root.DescendantsAndSelf().ToDictionary(e => e, Key);
+        bool Survives(XElement e) => !e.AncestorsAndSelf().Any(a => ignored.Contains(keys[a]));
+        PreserveIgnoredChildContent(root, keys, ignored);
+        PreserveIgnoredDependencies(root, keys, ignored);
+        var activeBuckets = resolved.Values.Select(o => (int)o!.Value).Distinct().OrderBy(o => o).ToArray();
+        var refs = root.DescendantsAndSelf().Where(Survives).SelectMany(ElementReferences).ToHashSet();
         var buckets = root.DescendantsAndSelf().ToDictionary(e => e, e => e.DescendantsAndSelf().Where(n => resolved.ContainsKey(keys[n])).Select(n => (int)resolved[keys[n]]!.Value).Distinct().ToArray());
-        var retained = root.DescendantsAndSelf().ToDictionary(e => e, e => e.DescendantsAndSelf().Any(n => buckets[n].Length == 0 && !n.Ancestors().Any(a => resolved.ContainsKey(keys[a]))));
+        var retained = root.DescendantsAndSelf().ToDictionary(e => e, e => e.DescendantsAndSelf().Any(n => Survives(n) && buckets[n].Length == 0 && !n.Ancestors().Any(a => resolved.ContainsKey(keys[a]))));
+        foreach (var e in root.DescendantsAndSelf().Where(e => buckets[e].Length > 0 && e.Descendants().Any(n => ignored.Contains(keys[n]))))
+        {
+            var clip = Property(e, "clip-path");
+            if (Property(e, "transform-box") is "fill-box" or "stroke-box" || Property(e, "transform-origin") is string origin && origin != "0 0" ||
+                Property(e, "filter") is string filter && filter != "none" ||
+                clip != null && Url.Matches(clip).Any(m => root.Descendants().Any(d => (string?)d.Attribute("id") == m.Groups[1].Value && (string?)d.Attribute("clipPathUnits") == "objectBoundingBox")))
+                throw new FormatException($"Ignoring artwork in '{Label(e)}' changes bounds used by a transform, filter or clip. Restore that artwork or resolve the effect in the source.");
+        }
         foreach (var e in root.DescendantsAndSelf().Where(e => buckets[e].Length > 1 || buckets[e].Length == 1 && retained[e] && buckets[e][0] != activeBuckets[0]))
         {
             if (refs.Contains((string?)e.Attribute("id") ?? "")) throw new FormatException($"Referenced container '{Label(e)}' spans operations and cannot be safely split.");
@@ -189,6 +205,7 @@ public static class SvgBatchService
                 XElement? Partition(XElement e)
                 {
                     var key = keys[e];
+                    if (ignored.Contains(key)) return null;
                     if (resolved.TryGetValue(key, out var operation) && (int)operation!.Value != bucket) return null;
                     if (buckets[e].Length > 0 && !buckets[e].Contains(bucket) && !(bucket == activeBuckets[0] && retained[e])) return null;
                     if (buckets[e].Length == 0 && bucket != activeBuckets[0] && !e.Ancestors().Any(a => resolved.ContainsKey(keys[a])) ) return null;
@@ -211,13 +228,18 @@ public static class SvgBatchService
                         idMap.TryAdd(id.Value, outputId);
                         if (!elementOutputs.ContainsKey(key)) elementOutputs[key] = new();
                         elementOutputs[key].Add(outputId);
-                        referenceMappings.Add(new { copy = copy + 1, sourceId = id.Value, outputId });
+                        referenceMappings.Add(new { copy = copy + 1, sourceId = e.Annotation<DependencyOrigin>()?.SourceId ?? id.Value, outputId });
                     }
                     else if (Hidden(e))
                     {
                         var outputId = Allocate($"lb-hidden-{key.Replace('/', '-')}-copy-{copy + 1}");
                         clone.SetAttributeValue("id", outputId);
                         elementOutputs[key] = new() { outputId };
+                    }
+                    if (e.Annotation<PreservedKey>() is PreservedKey preserved && clone.Attribute("id") is XAttribute preservedId)
+                    {
+                        if (!elementOutputs.TryGetValue(preserved.SourceKey, out var outputs)) elementOutputs[preserved.SourceKey] = outputs = new();
+                        outputs.Add(preservedId.Value);
                     }
                     foreach (var node in e.Nodes())
                     {
@@ -249,6 +271,17 @@ public static class SvgBatchService
         var stepMappings = GlowforgeSettings.Rewrite(output, analysis.Glowforge, warnings);
         var metadata = JsonSerializer.SerializeToNode(new { schemaVersion = 2, program = total, sourceFilename, sourceYield = sourceProgram.Yield, copyCount = settings.Copies, totalYield = total.Yield, orderingMode = settings.Ordering.ToString(), sheet = new { width = settings.Width, height = settings.Height, horizontalMargin = settings.HorizontalMargin, verticalMargin = settings.VerticalMargin, spacing = settings.Spacing, units = "in", svgUnitsPerInch = 96 }, operationMappings = resolved.Select(p => new { sourceKey = p.Key, operation = p.Value.ToString(), explicitlyAssigned = mappings.ContainsKey(p.Key) }), hiddenLayers = inventory, referenceMappings }, SvgMetadataService.JsonOptions)!.AsObject();
         SvgMetadataService.SetRuntime(metadata, estimatedRuntimeSeconds);
+        if (ignored.Count > 0)
+        {
+            var items = analysis.Items.ToDictionary(i => i.Key);
+            string AssignedBy(SvgItem item)
+            {
+                while (!mappings.ContainsKey(item.Key) && item.Parent != null) item = items[item.Parent];
+                return item.Key;
+            }
+            metadata["ignoredElements"] = JsonSerializer.SerializeToNode(analysis.Items.Where(i => ignored.Contains(i.Key))
+                .Select(i => new { sourceKey = i.Key, sourceId = i.Id, i.Label, assignedByKey = AssignedBy(i) }), SvgMetadataService.JsonOptions);
+        }
         if (analysis.Glowforge.Steps.Count > 0)
             metadata["vendorProvenance"] = JsonSerializer.SerializeToNode(new { glowforge = new { originalDefinitions = analysis.Glowforge.OriginalDefinitions, reportLines = analysis.Glowforge.ReportLines, stepMappings } }, SvgMetadataService.JsonOptions);
         output.AddFirst(new XElement(Svg + "metadata", new XElement(MetadataNamespace + "batch", new XAttribute("schemaVersion", "2"), metadata.ToJsonString())));
@@ -260,7 +293,107 @@ public static class SvgBatchService
     }
 
     private static XNode CloneNode(XNode node) => node switch { XCData c => new XCData(c.Value), XText t => new XText(t.Value), XComment c => new XComment(c.Value), XProcessingInstruction p => new XProcessingInstruction(p.Target, p.Data), _ => throw new FormatException("Unsupported XML node.") };
-    private static IEnumerable<string> References(XElement root) => root.DescendantsAndSelf().Attributes().Where(a => !a.IsNamespaceDeclaration).SelectMany(a => a.Name.LocalName == "href" && a.Value.StartsWith('#') ? new[] { a.Value[1..] } : a.Name.LocalName is "aria-labelledby" or "aria-describedby" ? a.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries) : Url.Matches(a.Value).Select(m => m.Groups[1].Value));
+    private static IEnumerable<string> ElementReferences(XElement element) => element.Attributes().Where(a => !a.IsNamespaceDeclaration).SelectMany(a => a.Name.LocalName == "href" && a.Value.StartsWith('#') ? new[] { a.Value[1..] } : a.Name.LocalName is "aria-labelledby" or "aria-describedby" ? a.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries) : Url.Matches(a.Value).Select(m => m.Groups[1].Value));
+    private static IEnumerable<string> References(XElement root) => root.DescendantsAndSelf().SelectMany(ElementReferences);
+    private sealed record DependencyOrigin(string SourceId);
+    private sealed record PreservedKey(string SourceKey);
+
+    private static void PreserveIgnoredChildContent(XElement root, Dictionary<XElement, string> keys, HashSet<string> ignored)
+    {
+        // A production text/shape can itself contain hidden text, licensing or
+        // metadata. Keep only those child branches in inert definitions, retaining
+        // ancestor context; ordinary visible text is not copied into this archive.
+        var targets = root.Descendants().Where(e => ignored.Contains(keys[e]) && !e.Ancestors().Any(a => ignored.Contains(keys[a]))).ToArray();
+        var definitions = new XElement(Svg + "defs", new XAttribute("data-laserbatcher-preserved-content", "ignored-descendants"));
+        bool Protected(XElement e) => Hidden(e) || NonProduction(e) || e.Name.Namespace != Svg || e.Name.LocalName is "title" or "desc";
+        XElement? Retain(XElement source, bool top = false)
+        {
+            if (!top && Protected(source))
+            {
+                var complete = new XElement(source);
+                foreach (var pair in source.DescendantsAndSelf().Zip(complete.DescendantsAndSelf())) pair.Second.AddAnnotation(new PreservedKey(keys[pair.First]));
+                return complete;
+            }
+            var children = source.Elements().Select(e => Retain(e)).Where(e => e != null).ToArray();
+            if (children.Length == 0) return null;
+            var shell = new XElement(source.Name, source.Attributes(), children);
+            shell.AddAnnotation(new PreservedKey(keys[source]));
+            return shell;
+        }
+        var used = root.DescendantsAndSelf().Attributes("id").Select(a => a.Value).ToHashSet();
+        foreach (var target in targets)
+        {
+            var branch = Retain(target, true);
+            if (branch == null) continue;
+            foreach (var parent in target.Ancestors().TakeWhile(e => e != root)) branch = new XElement(parent.Name, parent.Attributes(), branch);
+            var ids = new Dictionary<string, string>();
+            foreach (var e in branch.DescendantsAndSelf())
+                if (e.Attribute("id") is XAttribute id)
+                {
+                    var original = id.Value; var name = original + "-lb-preserved"; var n = 1;
+                    while (!used.Add(name)) name = original + "-lb-preserved-" + n++;
+                    ids[original] = name; id.Value = name; e.AddAnnotation(new DependencyOrigin(original));
+                }
+            RewriteReferences(branch, ids);
+            definitions.Add(branch);
+        }
+        if (!definitions.HasElements) return;
+        var index = 0;
+        foreach (var e in definitions.DescendantsAndSelf()) keys[e] = "preserved/" + index++;
+        root.AddFirst(definitions);
+    }
+
+    private static void PreserveIgnoredDependencies(XElement root, Dictionary<XElement, string> keys, HashSet<string> ignored)
+    {
+        if (ignored.Count == 0) return;
+        var originals = root.DescendantsAndSelf().ToArray();
+        var byId = originals.Where(e => e.Attribute("id") != null).ToDictionary(e => e.Attribute("id")!.Value);
+        bool Affected(XElement e) => e.AncestorsAndSelf().Any(a => ignored.Contains(keys[a])) || e.Descendants().Any(d => ignored.Contains(keys[d]));
+        var required = originals.Where(e => !e.AncestorsAndSelf().Any(a => ignored.Contains(keys[a]))).SelectMany(ElementReferences).ToHashSet();
+        var templates = new Dictionary<string, (XElement Node, Dictionary<string, string> Ids)>();
+        var used = byId.Keys.ToHashSet();
+        string Allocate(string id) { var next = id + "-lb-definition"; var n = 1; while (!used.Add(next)) next = id + "-lb-definition-" + n++; return next; }
+        var pending = new Queue<string>(required);
+        while (pending.TryDequeue(out var id))
+        {
+            if (templates.ContainsKey(id) || !byId.TryGetValue(id, out var source) || !Affected(source)) continue;
+            if (source == root || source.AncestorsAndSelf().Any(e => Property(e, "transform-box") is "fill-box" or "stroke-box" || Property(e, "transform-origin") is string origin && origin != "0 0"))
+                throw new FormatException($"Ignored dependency '{Label(source)}' has a bounds-dependent transform. Restore it or ignore its dependent artwork.");
+            if (source.Ancestors().Any(e => e != root && e.Name == Svg + "svg"))
+                throw new FormatException($"Ignored dependency '{Label(source)}' is inside a nested SVG viewport. Flatten that viewport in the source, restore the artwork, or ignore its dependent artwork.");
+            // Clone semantics inherit through the <use> instance, not the target's
+            // original ancestors. Preserve the referenced subtree without baking
+            // parent transforms/styles into it or applying occurrence assignments.
+            var template = new XElement(source);
+            var declared = template.Attributes().Where(a => a.IsNamespaceDeclaration).Select(a => a.Name).ToHashSet();
+            foreach (var ns in source.Ancestors().SelectMany(e => e.Attributes()).Where(a => a.IsNamespaceDeclaration))
+                if (declared.Add(ns.Name)) template.Add(new XAttribute(ns));
+            var ids = new Dictionary<string, string>();
+            foreach (var node in template.DescendantsAndSelf())
+                if (node.Attribute("id") is XAttribute attr)
+                {
+                    var original = attr.Value;
+                    ids[original] = Allocate(original); attr.Value = ids[original];
+                    node.AddAnnotation(new DependencyOrigin(original));
+                }
+            templates[id] = (template, ids);
+            foreach (var reference in References(source)) pending.Enqueue(reference);
+        }
+        if (templates.Count == 0) return;
+        var redirects = templates.ToDictionary(p => p.Key, p => p.Value.Ids[p.Key]);
+        RewriteReferences(root, redirects);
+        var definitions = new XElement(Svg + "defs");
+        foreach (var template in templates.Values)
+        {
+            var ids = new Dictionary<string, string>(redirects);
+            foreach (var id in template.Ids) ids[id.Key] = id.Value;
+            RewriteReferences(template.Node, ids);
+            definitions.Add(template.Node);
+        }
+        var index = 0;
+        foreach (var node in definitions.DescendantsAndSelf()) keys[node] = "dependency/" + index++;
+        root.AddFirst(definitions);
+    }
     private static void RewriteReferences(XElement root, Dictionary<string, string> ids)
     {
         foreach (var a in root.DescendantsAndSelf().Attributes().Where(a => !a.IsNamespaceDeclaration))

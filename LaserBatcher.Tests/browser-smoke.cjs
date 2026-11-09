@@ -28,9 +28,9 @@ const assert = require('node:assert/strict');
     await page.locator('img[data-source-key]').first().scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('img[data-source-key]')?.dataset.previewReady === 'true');
     assert(await page.locator('img[data-source-key]').count() > 1);
-    const indentation = await page.locator('tr[data-depth]').evaluateAll(rows => rows.map(row => ({ depth: Number(row.dataset.depth), padding: parseFloat(getComputedStyle(row.querySelector('.mapping-element')).paddingLeft) })));
+    const indentation = await page.locator('tr[data-depth]').evaluateAll(rows => rows.map(row => ({ depth: Number(row.dataset.depth), padding: parseFloat(getComputedStyle(row.querySelector('.mapping-entry')).paddingLeft) })));
     assert(indentation.some(row => row.depth > 1));
-    assert(indentation.every(row => row.padding === row.depth * 14));
+    assert(indentation.every(row => row.padding === Math.min(row.depth, 5) * 7));
     for (const [id, value] of [['boxWidth', '4'], ['boxHeight', '3'], ['horizontalMargin', '0.25'], ['verticalMargin', '0.25'], ['spaceBetween', '0.1']]) {
       await page.locator('#' + id).fill(value);
       await page.locator('#' + id).blur();
@@ -109,9 +109,12 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => document.querySelector('#workMode')?.value === 'EditMetadata');
     assert.equal(await page.locator('#sourceYield').inputValue(), '12');
     assert.equal(await page.locator('#boxWidth').count(), 0, 'Metadata edits must not require fitting or rebuilding');
-    for (const [id, value] of [['runtimeHours', '25'], ['runtimeMinutes', '1'], ['runtimeSeconds', '1'], ['sourceYield', '11']]) {
+    await page.getByRole('button', { name: /^Runtime/ }).click();
+    for (const [id, value] of [['runtimeHours', '25'], ['runtimeMinutes', '1'], ['runtimeSeconds', '1']]) {
       await page.locator('#' + id).fill(value); await page.locator('#' + id).blur();
     }
+    await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.locator('dialog:modal').waitFor({ state: 'hidden' });
+    await page.locator('#sourceYield').fill('11'); await page.locator('#sourceYield').blur();
     const updated = await downloadUpdated();
     const initialState = await inspect(exported), updatedState = await inspect(updated.xml);
     assert.equal(updatedState.metadata.estimatedRuntimeSeconds, 90061);
@@ -120,38 +123,36 @@ const assert = require('node:assert/strict');
     assert.equal(updatedState.metadata.copyCount, 3);
     assert.deepEqual(updatedState.artwork, initialState.artwork, 'Metadata edits must preserve all non-target XML');
     await page.locator('#svgUpload').setInputFiles({ name: 'Conflict_x3.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(updated.xml) });
-    await page.getByRole('button', { name: 'Use embedded metadata' }).waitFor();
+    await page.getByRole('button', { name: /^Issues/ }).click(); await page.getByRole('button', { name: 'Use embedded metadata' }).waitFor();
     assert(await page.getByRole('button', { name: 'Download updated SVG' }).isDisabled());
-    assert.equal(await page.locator('#runtimeHours').inputValue(), '25');
-    await page.getByRole('button', { name: 'Use embedded metadata' }).click();
-    await page.getByRole('button', { name: 'Clear estimate' }).click();
+    await page.getByRole('button', { name: 'Use embedded metadata' }).click(); await page.getByRole('button', { name: 'Close Issues', exact: true }).click(); await page.getByRole('button', { name: /^Runtime/ }).click(); assert.equal(await page.locator('#runtimeHours').inputValue(), '25');
+    await page.getByRole('button', { name: 'Clear estimate' }).click(); await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.locator('dialog:modal').waitFor({ state: 'hidden' });
     const cleared = await downloadUpdated();
     assert.equal((await inspect(cleared.xml)).metadata.estimatedRuntimeSeconds, undefined);
-    await page.locator('#runtimeSeconds').fill('0'); await page.locator('#runtimeSeconds').blur();
-    assert(await page.getByRole('button', { name: 'Download updated SVG' }).isDisabled());
-    await page.getByRole('button', { name: 'Clear estimate' }).click();
+    await page.getByRole('button', { name: /^Runtime/ }).click(); await page.locator('#runtimeSeconds').fill('0'); await page.locator('#runtimeSeconds').blur(); await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.getByRole('alert').filter({hasText:'positive whole seconds'}).waitFor(); await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.screenshot({ path: path.join(artifacts, 'metadata-editor.png'), fullPage: true });
     await page.locator('#workMode').selectOption('CreateBatch');
-    await page.locator('#runtimeSeconds').fill('60'); await page.locator('#runtimeSeconds').blur();
-    assert(await page.getByRole('button', { name: 'Render batch' }).isDisabled());
-    await page.locator('#runtimeSeconds').fill('30'); await page.locator('#runtimeSeconds').blur();
+    await page.getByRole('button', { name: /^Runtime/ }).click(); await page.locator('#runtimeSeconds').fill('60'); await page.locator('#runtimeSeconds').blur();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.getByRole('alert').filter({hasText:'between 0 and 59'}).waitFor();
+    await page.locator('#runtimeSeconds').fill('30'); await page.locator('#runtimeSeconds').blur(); await page.getByRole('button', { name: 'Apply', exact: true }).click(); await page.locator('dialog:modal').waitFor({ state: 'hidden' });
     await page.locator('#orderNumber').fill('NewOrder'); await page.locator('#orderNumber').blur();
     assert.equal(await page.locator('#runtimeSeconds').inputValue(), '30', 'Program fields must retain the whole-job estimate');
     await page.locator('#copyQuantity').fill('2'); await page.locator('#copyQuantity').blur();
-    assert.equal(await page.locator('#runtimeSeconds').inputValue(), '', 'Changing copies must clear the estimate');
+    await page.getByRole('button', { name: /^Runtime/ }).click(); assert.equal(await page.locator('#runtimeSeconds').inputValue(), '', 'Changing copies must clear the estimate'); await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
     await page.locator('#svgUpload').setInputFiles(path.join(__dirname, 'Fixtures', 'glowforge-x1.svg'));
-    await page.locator('#glowforgeSettings summary').first().click();
+    await page.getByRole('button', { name: 'Glowforge', exact: true }).click();
     assert((await page.locator('#glowforgeSettings').innerText()).includes('Speed=400'));
-    assert((await page.locator('#glowforgeSettings').innerText()).includes('2903.125'));
+    assert((await page.locator('#glowforgeSettings').innerText()).includes('2903.125')); await page.getByRole('button', { name: 'Close Glowforge settings', exact: true }).click();
     assert.equal(await page.getByRole('combobox', { name: /^Operation for text / }).count(), 0, 'Settings report must not be production artwork');
     for (const id of ['boxWidth', 'boxHeight']) { await page.locator('#' + id).fill('50'); await page.locator('#' + id).blur(); }
     await page.getByRole('combobox', { name: 'Operation for svg (0)', exact: true }).selectOption('ExteriorCut');
     await page.getByRole('combobox', { name: 'Operation for score (0/1/1)', exact: true }).selectOption('Score');
     await page.getByRole('button', { name: 'Render batch' }).click();
-    await page.getByRole('alert').filter({ hasText: 'Glowforge native step order was changed' }).waitFor();
+    await page.getByRole('button', { name: /^Issues/ }).click(); await page.locator('.alert').filter({ hasText: 'Glowforge native step order was changed' }).waitFor();
     await page.screenshot({ path: path.join(artifacts, 'glowforge-settings.png'), fullPage: true });
 
+    await page.getByRole('button', { name: 'Close Issues', exact: true }).click();
     const unmapped = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1in" height="1in"><g id="InsideCut"><path id="outline" d="M1 1h10v10h-10z"/></g></svg>');
     await page.locator('#svgUpload').setInputFiles({ name: 'Plain.svg', mimeType: 'image/svg+xml', buffer: unmapped });
     await page.waitForFunction(() => document.querySelector('#partName')?.value === 'Plain');
@@ -162,14 +163,14 @@ const assert = require('node:assert/strict');
     await page.getByAltText('Ordered laser batch preview').waitFor();
 
     await page.locator('#svgUpload').setInputFiles({ name: 'Broken_batch_x0.svg', mimeType: 'image/svg+xml', buffer: source });
-    await page.getByRole('alert').filter({ hasText: 'Source filename:' }).waitFor();
+    await page.locator('#workspace-status').filter({ hasText: 'Correct the program fields:' }).waitFor();
     assert(await page.getByRole('button', { name: 'Render batch' }).isDisabled());
     await page.locator('#partName').fill('Fixed'); await page.locator('#partName').blur();
     await page.getByRole('button', { name: 'Render batch' }).click();
     await page.getByAltText('Ordered laser batch preview').waitFor();
 
     await page.locator('#svgUpload').setInputFiles({ name: 'malformed.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg>') });
-    await page.getByRole('alert').filter({ hasText: 'Could not load SVG' }).waitFor();
+    await page.locator('#workspace-status').filter({ hasText: 'Could not load SVG' }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(artifacts, 'mobile.png'), fullPage: true });
     assert.deepEqual(errors, []);
