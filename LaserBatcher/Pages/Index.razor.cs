@@ -23,6 +23,11 @@ public partial class Index
     private string woodColor = "#8B4513";
     private OrderingMode ordering = OrderingMode.WithinEachCopy;
     private readonly Dictionary<string, LaserOperation> mappings = new();
+    // Disclosure state is independent of production mappings and render state.
+    private readonly HashSet<string> collapsedGroups = new();
+    private readonly Dictionary<string, List<string>> groupProductionKeys = new();
+    private readonly Dictionary<string, List<string>> mappingAncestors = new();
+    private IReadOnlyList<SvgItem> mappingItems = Array.Empty<SvgItem>();
     private ElementReference mappingList;
     private IJSObjectReference? thumbnailModule;
     private SvgAnalysis? thumbnailAnalysis;
@@ -50,7 +55,34 @@ public partial class Index
     private BatchSettings Settings => new(boxWidthInches, boxHeightInches, horizontalMarginInches, verticalMarginInches, spaceBetweenInches, copyQuantity, ordering);
     private IReadOnlyDictionary<string, LaserOperation?> Resolved => analysis == null ? new Dictionary<string, LaserOperation?>() : SvgBatchService.Resolve(analysis, mappings);
     private int UnresolvedCount => Resolved.Count(p => p.Value == null);
-    private IEnumerable<SvgItem> MappingItems => analysis?.Items.Where(i => i.Production || !i.Hidden && (i.Element is "g" or "svg") && analysis.Items.Any(p => p.Production && p.Key.StartsWith(i.Key + "/", StringComparison.Ordinal))) ?? Enumerable.Empty<SvgItem>();
+    private void PrepareMappingTree()
+    {
+        groupProductionKeys.Clear(); mappingAncestors.Clear(); mappingItems = Array.Empty<SvgItem>();
+        if (analysis == null) return;
+        var byKey = analysis.Items.ToDictionary(item => item.Key);
+        foreach (var item in analysis.Items)
+        {
+            var ancestors = new List<string>();
+            var parent = item.Parent;
+            while (parent != null && byKey.TryGetValue(parent, out var ancestor))
+            {
+                ancestors.Add(parent);
+                if (item.Production && !ancestor.Hidden && (ancestor.Element is "g" or "svg"))
+                {
+                    if (!groupProductionKeys.TryGetValue(parent, out var descendants))
+                        groupProductionKeys[parent] = descendants = new List<string>();
+                    descendants.Add(item.Key);
+                }
+                parent = ancestor.Parent;
+            }
+            mappingAncestors[item.Key] = ancestors;
+        }
+        mappingItems = analysis.Items.Where(item => item.Production || groupProductionKeys.ContainsKey(item.Key)).ToArray();
+    }
+    private bool MappingHidden(string key) => mappingAncestors[key].Any(collapsedGroups.Contains);
+    private void ToggleGroup(string key) { if (!collapsedGroups.Remove(key)) collapsedGroups.Add(key); }
+    private void ExpandAll() => collapsedGroups.Clear();
+    private void CollapseAll() => collapsedGroups.UnionWith(groupProductionKeys.Keys);
     private string PreviewUrl => "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(SvgSerializer.Serialize(rendering!.Document)));
     private string FilenamePreview { get { try { return ProgramNameParser.Format(OutputProgram); } catch (Exception ex) when (ex is FormatException or OverflowException) { return ex is OverflowException ? "Total yield exceeds 2147483647." : ex.Message; } } }
     private void Invalidate() { rendering = null; error = null; }
@@ -93,6 +125,7 @@ public partial class Index
     private async Task HandleFileUpload(InputFileChangeEventArgs args)
     {
         Invalidate(); analysis = null; mappings.Clear(); sourceNameError = null; metadataConflict = false; filenameCandidate = null; notice = null;
+        collapsedGroups.Clear(); PrepareMappingTree();
         workMode = "CreateBatch"; SetRuntime(null);
         partName = orderNumber = batch = null; sourceYield = 1;
         try
@@ -100,6 +133,7 @@ public partial class Index
             sourceFilename = args.File.Name;
             using var stream = args.File.OpenReadStream(10 * 1024 * 1024);
             analysis = SvgBatchService.Analyze(await new StreamReader(stream).ReadToEndAsync());
+            PrepareMappingTree();
             var source = SvgMetadataService.SelectProgram(sourceFilename, analysis.Metadata);
             UseProgram(source.Program);
             filenameCandidate = source.FilenameCandidate; metadataConflict = source.Conflict;

@@ -1,0 +1,32 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="support-widget" @ref="container">
+    <iframe class="support-frame" title="Support LaserBatcher on Buy me a coffee"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+            referrerpolicy="no-referrer" aria-hidden="true" tabindex="-1"></iframe>
+    <a class="support-fallback" href="https://buymeacoffee.com/tbm0115" target="_blank" rel="noopener noreferrer"
+       aria-label="Buy me a coffee (opens in a new tab)">Buy me a coffee <span aria-hidden="true">↗</span></a>
+</div>
+
+@code {
+    private ElementReference container;
+    private IJSObjectReference? module;
+    private bool disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./supportButton.js");
+        if (!disposed) await module.InvokeVoidAsync("initialize", container);
+        else await module.DisposeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        if (module == null) return;
+        try { await module.InvokeVoidAsync("dispose", container); await module.DisposeAsync(); }
+        catch (JSDisconnectedException) { }
+    }
+}

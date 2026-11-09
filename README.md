@@ -3,6 +3,10 @@ An open-source, online tool for batching multiple parts for laser operations. Al
 
 Batch exports preserve hidden layers and semantic metadata, support per-copy or sheet-wide operation ordering, and use strict program filenames for external metadata extraction. Upload an existing LaserBatcher export to edit program fields and an optional, laser-independent **Estimated Runtime** without rebuilding its layout. Glowforge imports show saved settings and align native step order with the batch while preserving machine-setting values. See [SVG metadata and filename conventions](docs/svg-metadata.md) for the v2 contract, legacy imports, compatibility limits, and tests.
 
+Choose System, Light, or Dark appearance in the header. Operation Mapping groups can be collapsed individually or together; their counts and assignments still include hidden descendants. These view controls leave the runtime estimate and exported artwork unchanged. See the [brand guide](docs/brand-guide.md) for the palette, editable icon assets, creator credit, and browser checks.
+
+The [GitHub Pages hosting guide](docs/github-pages.md) explains the custom-domain root path, deployment checks, PWA integrity hashes, and recovery from stale cached builds.
+
 This program supports Generic SVG and Inkscape-labelled designs with the following considerations:
 
  - Document dimensions must explicitly use **in, mm, cm, pt, or pc**. Sheet controls remain in inches; unitless and pixel-only root dimensions are rejected.

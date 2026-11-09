@@ -7,8 +7,11 @@ const assert = require('node:assert/strict');
 (async () => {
   const artifacts = path.join(__dirname, 'obj', 'browser-qa');
   fs.mkdirSync(artifacts, { recursive: true });
-  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, args: ['--disable-features=IsolateSandboxedIframes'] });
+  // Playwright's serviceWorkers:'block' injects code that throws in opaque-origin
+  // support iframes. The development worker itself has no fetch/cache behavior.
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 });
+  await page.addInitScript(() => { if (window === window.top) navigator.serviceWorker.register = async () => ({}); });
   await page.route('**/*', route => ['localhost', '127.0.0.1'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
   page.setDefaultTimeout(15000);
   const errors = [];
@@ -18,7 +21,7 @@ const assert = require('node:assert/strict');
   page.on('pageerror', e => { errors.push(e.message); console.error(e.message); });
   try {
     await page.goto(process.env.LASERBATCHER_URL || 'http://localhost:5188', { waitUntil: 'commit' });
-    await page.getByRole('heading', { name: 'Laser Batcher', exact: true }).waitFor({ timeout: 60000 });
+    await page.locator('.app-header').getByRole('heading', { name: 'LaserBatcher', exact: true }).waitFor({ timeout: 60000 });
     const source = fs.readFileSync(path.join(__dirname, 'Fixtures', 'semantic.svg'));
     await page.locator('#svgUpload').setInputFiles({ name: 'Widget_x4.svg', mimeType: 'image/svg+xml', buffer: source });
     await page.waitForFunction(() => document.querySelector('#filenamePreview')?.textContent === 'Widget_x4.svg');

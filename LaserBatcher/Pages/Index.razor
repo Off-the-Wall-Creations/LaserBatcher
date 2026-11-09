@@ -3,8 +3,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Laser Batcher - Off the Wall Creations</PageTitle>
-<h1>Laser Batcher</h1>
+<PageTitle>LaserBatcher — by Off the Wall Creations</PageTitle>
 <p>Arrange copies and laser operations, or update an existing batch's metadata and estimated runtime.</p>
 <div class="row g-3 mb-3">
     <section class="col-lg-4"><fieldset class="border rounded p-3 h-100">
@@ -104,14 +103,24 @@
     <details class="mb-3" open>
         <summary>Operation mapping — @UnresolvedCount unresolved production elements</summary>
         <p class="form-text">Thumbnails are fitted to each element; indentation follows the source groups. Assign operations to groups or individual elements. Individual assignments override groups. “Cut” needs an InteriorCut or ExteriorCut assignment.</p>
+        <div class="mapping-toolbar" role="group" aria-label="Mapping group visibility">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">Expand all</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">Collapse all</button>
+        </div>
+        @{ var resolved = Resolved; }
         <div class="table-responsive mapping-list" @ref="mappingList"><table class="table table-sm"><thead><tr><th>Element / layer</th><th>Operation</th><th>Assignment</th></tr></thead><tbody>
-            @foreach (var item in MappingItems)
+            @foreach (var item in mappingItems)
             {
-                <tr @key="item.Key" data-depth="@MappingDepth(item)"><td><div class="mapping-element" style="padding-left:@(MappingDepth(item) * 14)px">
+                var isGroup = groupProductionKeys.TryGetValue(item.Key, out var descendants);
+                <tr @key="item.Key" data-key="@item.Key" data-depth="@MappingDepth(item)" hidden="@MappingHidden(item.Key)"><td><div class="mapping-element" style="padding-left:@(MappingDepth(item) * 14)px">
+                    @if (isGroup)
+                    {
+                        <button type="button" class="btn btn-outline-secondary mapping-disclosure" aria-label="@($"{(collapsedGroups.Contains(item.Key) ? "Expand" : "Collapse")} {item.Label} ({item.Key})")" aria-expanded="@(!collapsedGroups.Contains(item.Key) ? "true" : "false")" @onclick="() => ToggleGroup(item.Key)"><span aria-hidden="true">@(collapsedGroups.Contains(item.Key) ? "▸" : "▾")</span></button>
+                    }
                     @if (!analysis.Errors.Any()) { <img @key="analysis" class="mapping-thumbnail" data-source-key="@item.Key" alt="@($"Preview of {item.Label}")" title="@item.Label" width="96" height="64" /> }
-                    <span><span class="@(item.Production ? "" : "fw-semibold")">@item.Label</span><small class="text-muted d-block">@item.Element · @item.Key</small></span>
+                    <span><span class="@(item.Production ? "" : "fw-semibold")">@item.Label</span><small class="text-muted d-block">@item.Element · @item.Key</small>@if (isGroup) { <small class="text-muted d-block mapping-count">@descendants!.Count production · @descendants.Count(key => resolved.GetValueOrDefault(key) == null) unresolved</small> }</span>
                 </div></td>
-                    <td>@(item.Production ? Resolved.GetValueOrDefault(item.Key)?.ToString() ?? "Unresolved" : "Group") @if (item.Suggestion != null) { <small class="d-block">Suggested: @item.Suggestion</small> }</td>
+                    <td>@(item.Production ? resolved.GetValueOrDefault(item.Key)?.ToString() ?? "Unresolved" : "Group") @if (item.Suggestion != null) { <small class="d-block">Suggested: @item.Suggestion</small> }</td>
                     <td><select class="form-select form-select-sm" aria-label="@($"Operation for {item.Label} ({item.Key})")" value="@MappingValue(item.Key)" @onchange="e => SetMapping(item.Key, e.Value?.ToString())"><option value="">From source / parent</option>@foreach (var operation in Enum.GetValues<LaserOperation>()) { <option value="@operation">@operation</option> }</select></td>
                 </tr>
             }
@@ -123,7 +132,7 @@
         <ul>@foreach (var item in analysis.Items.Where(i => i.Hidden && (i.Element == "g" || i.SemanticCategory != null))) { <li>@item.Label — @item.Visibility (@item.Key)</li> }</ul>
     </details>
 }
-<div class="d-flex gap-2 mb-3">
+<div class="d-flex flex-wrap gap-2 mb-3">
     @if (EditingMetadata)
     { <button class="btn btn-success" @onclick="SaveBatch" disabled="@(MetadataBlocked || analysis?.Metadata == null)">Download updated SVG</button> }
     else

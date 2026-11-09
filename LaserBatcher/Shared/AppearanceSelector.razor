@@ -1,0 +1,27 @@
+@inject IJSRuntime JS
+
+<div class="appearance-control">
+    <label for="appearance">Appearance</label>
+    <select id="appearance" class="form-select form-select-sm" value="@preference" @onchange="ChangeAppearance">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</div>
+
+@code {
+    private string preference = "system";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        preference = await JS.InvokeAsync<string>("laserBatcherTheme.get");
+        StateHasChanged();
+    }
+
+    private async Task ChangeAppearance(ChangeEventArgs args)
+    {
+        preference = args.Value?.ToString() ?? "system";
+        await JS.InvokeVoidAsync("laserBatcherTheme.set", preference);
+    }
+}

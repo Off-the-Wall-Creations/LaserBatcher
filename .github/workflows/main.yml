@@ -3,6 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   deploy-to-github-pages:
@@ -18,20 +22,18 @@ jobs:
       - name: Test metadata parsing and SVG exports
         run: dotnet test LaserBatcher.Tests/LaserBatcher.Tests.csproj -c Release --nologo
 
+      - name: Test Pages deployment checks
+        run: node --test LaserBatcher.Tests/pages-deployment.test.cjs
+
+      # This repository's custom domain serves the app at /, not /LaserBatcher/.
+      # Keep wwwroot/index.html's base tag unchanged so the PWA hash stays valid.
       - name: Publish .NET Core Project
         run: dotnet publish LaserBatcher/LaserBatcher.csproj -c Release -o release --nologo
-        
-      # changes the base-tag in index.html from '/' to 'BlazorGitHubPagesDemo' to match GitHub Pages repository subdirectory
-     # - name: Change base-tag in index.html from / to HomeRecipes.Client
-     #   run: sed -i 's/<base href="\/" \/>/<base href="\/HomeRecipes\/" \/>/g' release/wwwroot/index.html
-      
-      # copy index.html to 404.html to serve the same file when a file is not found
-      - name: copy index.html to 404.html
-        run: cp release/wwwroot/index.html release/wwwroot/404.html
-      
-      # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
-      - name: Add .nojekyll file
-        run: touch release/wwwroot/.nojekyll
+
+      # Verify paths and all generated integrity hashes before deploying. Only
+      # add Pages support files; never rewrite already-hashed published assets.
+      - name: Prepare and verify GitHub Pages output
+        run: node tools/prepare-pages.cjs release/wwwroot
       
       - name: Commit wwwroot to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@3.7.1
