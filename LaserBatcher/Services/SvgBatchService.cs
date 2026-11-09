@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -10,14 +11,23 @@ public enum LaserOperation { Engrave, Score, InteriorCut, ExteriorCut }
 public enum OrderingMode { WithinEachCopy, AcrossSheet }
 public sealed record BatchSettings(double Width, double Height, double HorizontalMargin, double VerticalMargin, double Spacing, int Copies, OrderingMode Ordering);
 public sealed record SvgItem(string Key, string? Id, string Label, string? Parent, string Element, bool Hidden, string Visibility, string? SemanticCategory, bool Production, LaserOperation? Operation, string? Suggestion);
-public sealed record SvgAnalysis(XDocument Document, IReadOnlyList<SvgItem> Items, IReadOnlyList<string> Errors, double Width, double Height);
-public sealed record BatchResult(XDocument Document, string Filename);
+public sealed record SvgAnalysis(XDocument Document, IReadOnlyList<SvgItem> Items, IReadOnlyList<string> Errors, double Width, double Height)
+{
+    public XDocument SourceDocument { get; init; } = Document;
+    public ImportedMetadata? Metadata { get; init; }
+    public GlowforgeAnalysis Glowforge { get; init; } = new(Array.Empty<GlowforgeStep>(), Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>());
+    public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
+}
+public sealed record BatchResult(XDocument Document, string Filename)
+{
+    public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
+}
 
 public static class SvgBatchService
 {
     public static readonly XNamespace Svg = "http://www.w3.org/2000/svg";
     public static readonly XNamespace Inkscape = "http://www.inkscape.org/namespaces/inkscape";
-    public static readonly XNamespace MetadataNamespace = "urn:laserbatcher:metadata:1";
+    public static readonly XNamespace MetadataNamespace = SvgMetadataService.Namespace;
     private static readonly HashSet<string> Geometry = new() { "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text", "image", "use" };
     private static readonly HashSet<string> Semantics = new() { "CustomizationZones", "MaterialSpecs", "DesignConstraints" };
     private static readonly Regex Url = new("url\\(\\s*['\"]?#([^)'\"\\s]+)['\"]?\\s*\\)", RegexOptions.IgnoreCase);
@@ -39,9 +49,13 @@ public static class SvgBatchService
 
     public static SvgAnalysis Analyze(string xml)
     {
-        using var reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
-        var doc = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        var source = SvgMetadataService.Parse(xml);
+        var metadata = SvgMetadataService.Read(source);
+        var doc = new XDocument(source);
+        SvgClassStyles.Resolve(doc);
+        var glowforge = GlowforgeSettings.Analyze(doc);
         var errors = new List<string>();
+        errors.AddRange(glowforge.Errors);
         var root = doc.Root ?? throw new FormatException("SVG has no root element.");
         if (root.Name != Svg + "svg") throw new FormatException("The document must have an SVG root in the SVG namespace.");
         var elements = root.DescendantsAndSelf().ToArray();
@@ -85,15 +99,20 @@ public static class SvgBatchService
             var production = e.Name.Namespace == Svg && Geometry.Contains(e.Name.LocalName) && !e.Ancestors().Any(a => a.Name == Svg + "text") && !NonProduction(e) && !hidden;
             return new SvgItem(Key(e), (string?)e.Attribute("id"), Label(e), e.Parent == null ? null : Key(e.Parent), e.Name.LocalName, hidden,
                 elements.Any(a => a.Name == Svg + "style") ? "unresolved-stylesheet" : hidden ? Category(e) != null ? "semantic-container" : "hidden-by-self-or-ancestor" : "visible",
-                Category(e), production, operations.Length == 1 ? operations[0] : null, ancestry.Select(a => Alias(Label(a))).FirstOrDefault(a => a != null));
+                Category(e), production, operations.Length == 1 ? operations[0] : null,
+                ancestry.Select(a => Alias(Label(a))).FirstOrDefault(a => a != null) ?? glowforge.Steps.FirstOrDefault(s => s.ArtworkKeys.Contains(Key(e)))?.Suggestion);
         }).ToArray();
-        return new(doc, items, errors.Distinct().ToArray(), width, height);
+        return new(doc, items, errors.Distinct().ToArray(), width, height)
+        {
+            SourceDocument = source, Metadata = metadata.Metadata, Glowforge = glowforge,
+            Warnings = metadata.Warnings.Concat(glowforge.Warnings).ToArray()
+        };
     }
 
     private static double Inches(string? value, List<string> errors)
     {
-        if (value != null && value.EndsWith("in", StringComparison.Ordinal) && double.TryParse(value[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var n) && double.IsFinite(n) && n > 0) return n;
-        errors.Add("Source width and height must be positive dimensions with explicit in units.");
+        try { return SvgLengths.PhysicalInches(value); }
+        catch (FormatException ex) { errors.Add(ex.Message); }
         return 0;
     }
 
@@ -125,8 +144,9 @@ public static class SvgBatchService
         if (new[] { s.Width, s.Height, s.HorizontalMargin, s.VerticalMargin, s.Spacing }.Any(n => !double.IsFinite(n)) || s.Width <= 0 || s.Height <= 0 || s.HorizontalMargin < 0 || s.VerticalMargin < 0 || s.Spacing < 0 || s.Copies < 1) throw new FormatException("Sheet dimensions and copies must be positive; margins and spacing must be nonnegative.");
     }
 
-    public static BatchResult Build(SvgAnalysis analysis, string sourceFilename, ProgramMetadata sourceProgram, BatchSettings settings, IReadOnlyDictionary<string, LaserOperation> mappings)
+    public static BatchResult Build(SvgAnalysis analysis, string sourceFilename, ProgramMetadata sourceProgram, BatchSettings settings, IReadOnlyDictionary<string, LaserOperation> mappings, long? estimatedRuntimeSeconds = null)
     {
+        EstimatedRuntime.Validate(estimatedRuntimeSeconds);
         if (analysis.Errors.Any()) throw new FormatException(string.Join(" ", analysis.Errors));
         var filename = ProgramNameParser.Format(ProgramNameParser.Total(sourceProgram, settings.Copies));
         var total = ProgramNameParser.Parse(filename);
@@ -134,6 +154,9 @@ public static class SvgBatchService
         var resolved = Resolve(analysis, mappings);
         if (!resolved.Any()) throw new FormatException("No visible production geometry was found.");
         if (resolved.Any(p => p.Value == null)) throw new FormatException("Assign operations to all unresolved production elements before export.");
+        var glowforgeBindings = analysis.Glowforge.Steps.SelectMany(s => s.ArtworkKeys.Select(k => (Key: k, s.Class))).ToDictionary(p => p.Key, p => p.Class);
+        if (analysis.Glowforge.Steps.Count > 0 && resolved.Keys.Any(k => !glowforgeBindings.ContainsKey(k)))
+            throw new FormatException("Visible artwork has no Glowforge settings binding. Configure it in the source before exporting native ordered steps.");
         var root = analysis.Document.Root!;
         var activeBuckets = resolved.Values.Select(o => (int)o!.Value).Distinct().OrderBy(o => o).ToArray();
         var refs = References(root).ToHashSet();
@@ -170,6 +193,7 @@ public static class SvgBatchService
                     if (buckets[e].Length > 0 && !buckets[e].Contains(bucket) && !(bucket == activeBuckets[0] && retained[e])) return null;
                     if (buckets[e].Length == 0 && bucket != activeBuckets[0] && !e.Ancestors().Any(a => resolved.ContainsKey(keys[a])) ) return null;
                     var clone = new XElement(e.Name, e.Attributes());
+                    if (resolved.ContainsKey(key) && glowforgeBindings.TryGetValue(key, out var binding)) clone.AddAnnotation(new GlowforgeBinding(binding, key));
                     // Explicit mappings may override source semantics. Keep the original label
                     // as provenance, but do not export contradictory canonical operation labels.
                     if (buckets[e].Contains(bucket) && Canonical(Label(e)) is LaserOperation originalOperation && (int)originalOperation != bucket)
@@ -221,13 +245,18 @@ public static class SvgBatchService
                 declaredDisplay = Property(root.DescendantsAndSelf().First(e => keys[e] == item.Key), "display"), declaredVisibility = Property(root.DescendantsAndSelf().First(e => keys[e] == item.Key), "visibility") });
         }
         foreach (var piece in settings.Ordering == OrderingMode.WithinEachCopy ? pieces.OrderBy(p => p.Copy).ThenBy(p => p.Bucket) : pieces.OrderBy(p => p.Bucket).ThenBy(p => p.Copy)) output.Add(piece.Node);
-        var metadata = new { schemaVersion = 1, program = total, sourceFilename, sourceYield = sourceProgram.Yield, copyCount = settings.Copies, totalYield = total.Yield, orderingMode = settings.Ordering.ToString(), sheet = new { width = settings.Width, height = settings.Height, horizontalMargin = settings.HorizontalMargin, verticalMargin = settings.VerticalMargin, spacing = settings.Spacing, units = "in", svgUnitsPerInch = 96 }, operationMappings = resolved.Select(p => new { sourceKey = p.Key, operation = p.Value.ToString(), explicitlyAssigned = mappings.ContainsKey(p.Key) }), hiddenLayers = inventory, referenceMappings };
-        output.AddFirst(new XElement(Svg + "metadata", new XElement(MetadataNamespace + "batch", new XAttribute("schemaVersion", "1"), JsonSerializer.Serialize(metadata, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))));
+        var warnings = new List<string>();
+        var stepMappings = GlowforgeSettings.Rewrite(output, analysis.Glowforge, warnings);
+        var metadata = JsonSerializer.SerializeToNode(new { schemaVersion = 2, program = total, sourceFilename, sourceYield = sourceProgram.Yield, copyCount = settings.Copies, totalYield = total.Yield, orderingMode = settings.Ordering.ToString(), sheet = new { width = settings.Width, height = settings.Height, horizontalMargin = settings.HorizontalMargin, verticalMargin = settings.VerticalMargin, spacing = settings.Spacing, units = "in", svgUnitsPerInch = 96 }, operationMappings = resolved.Select(p => new { sourceKey = p.Key, operation = p.Value.ToString(), explicitlyAssigned = mappings.ContainsKey(p.Key) }), hiddenLayers = inventory, referenceMappings }, SvgMetadataService.JsonOptions)!.AsObject();
+        SvgMetadataService.SetRuntime(metadata, estimatedRuntimeSeconds);
+        if (analysis.Glowforge.Steps.Count > 0)
+            metadata["vendorProvenance"] = JsonSerializer.SerializeToNode(new { glowforge = new { originalDefinitions = analysis.Glowforge.OriginalDefinitions, reportLines = analysis.Glowforge.ReportLines, stepMappings } }, SvgMetadataService.JsonOptions);
+        output.AddFirst(new XElement(Svg + "metadata", new XElement(MetadataNamespace + "batch", new XAttribute("schemaVersion", "2"), metadata.ToJsonString())));
         var outputIds = output.DescendantsAndSelf().Attributes("id").Select(a => a.Value).ToArray();
         if (outputIds.Length != outputIds.Distinct().Count() || References(output).Any(r => !outputIds.Contains(r))) throw new FormatException("Export reference validation failed.");
         var document = new XDocument(new XDeclaration("1.0", "utf-8", null));
         foreach (var node in analysis.Document.Nodes()) document.Add(node is XElement ? output : CloneNode(node));
-        return new(SvgViewportNormalizer.Flatten(document), filename);
+        return new(SvgViewportNormalizer.Flatten(document), filename) { Warnings = warnings };
     }
 
     private static XNode CloneNode(XNode node) => node switch { XCData c => new XCData(c.Value), XText t => new XText(t.Value), XComment c => new XComment(c.Value), XProcessingInstruction p => new XProcessingInstruction(p.Target, p.Data), _ => throw new FormatException("Unsupported XML node.") };

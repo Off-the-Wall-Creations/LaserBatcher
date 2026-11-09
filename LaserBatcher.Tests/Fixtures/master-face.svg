@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="133.6561mm" height="61.4669mm" viewBox="0 0 133.6561 61.4669">
+ <title>Face fixture</title><metadata xmlns="" id="license-metadata"><owc:license xmlns:owc="urn:off-the-wall-creations:gridwall-basket-license:v1" asset="face" licensee="[Customer]" invoice="[Invoice #]"/></metadata>
+ <text xmlns="" id="license-watermark" data-licensee="[Customer]" style="display:none" x="-10000" y="-10000">Preserve</text>
+ <g id="cut" inkscape:label="Outer perimeter - cut last" stroke="#FF0000" fill="none"><path id="face" d="M1 1h100v40h-100z"/></g>
+</svg>

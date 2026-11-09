@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:gf="http://glowforge.com/namespaces/gf" width="20in" height="22.208333333333332in" viewBox="0 0 1920 2132">
+  <gf:laserdefs><gf:laserdef class="black" order="0" type="cut" power="100" speed="567.1875" passes="1" focal_offset="2.997" corner="50" materialid="UNKNOWN" settingid="cut::example::MANUAL_SETTING"/><gf:laserdef class="teal" order="1" type="cut" power="100" speed="567.1875" passes="1" focal_offset="2.997" corner="50" materialid="UNKNOWN" settingid="cut::example::MANUAL_SETTING"/></gf:laserdefs>
+  <g><path id="one" class="e black black" d="M0 0h10"/><path id="two" class="e teal teal" d="M0 0h100v100z"/><path id="three" class="e black black" d="M200 0h10"/><path id="four" class="e teal teal" d="M200 0h100v100z"/></g>
+  <style>.black{stroke:#000000;fill:none}.teal{stroke:#005a5c;fill:none}</style>
+  <text><tspan>Glowforge® print settings</tspan><tspan>Design id: fixture2</tspan><tspan>Timestamp: fixture</tspan><tspan>Version: 1.0</tspan><tspan>Step 0: #000000 Cut::3mm Chipboard Cut::Manual</tspan><tspan>Step 0: #000000 Speed=150</tspan><tspan>Step 0: #000000 Precision Power=full</tspan><tspan>Step 1: #005a5c Cut::3mm Chipboard Cut::Manual</tspan></text>
+</svg>

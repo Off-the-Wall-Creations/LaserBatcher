@@ -118,10 +118,6 @@ public static class SvgViewportNormalizer
 
     private static double Length(string? text, double percentBasis, double fallback)
     {
-        if (text == null) return fallback;
-        var match = Regex.Match(text.Trim(), @"^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)(px|in|mm|cm|pt|pc|%)?$");
-        if (!match.Success || !double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number))
-            throw new FormatException("SVG viewport lengths must use numbers, px, in, mm, cm, pt, pc, or percentages.");
-        return number * (match.Groups[2].Value switch { "in" => 96, "mm" => 96 / 25.4, "cm" => 96 / 2.54, "pt" => 96 / 72d, "pc" => 16, "%" => percentBasis / 100, _ => 1 });
+        return SvgLengths.Pixels(text, percentBasis, fallback);
     }
 }

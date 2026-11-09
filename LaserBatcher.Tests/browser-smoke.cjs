@@ -1,5 +1,5 @@
 // Optional browser regression: start the app on localhost:5188, then run with Node and Playwright.
-const { chromium } = require('playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -77,9 +77,77 @@ const assert = require('node:assert/strict');
       .filter(element => element.namespaceURI === 'http://www.w3.org/2000/svg' && element.prefix).map(element => element.tagName), exported);
     assert.deepEqual(prefixedSvgElements, [], 'Downloaded SVG elements must use unprefixed names even when the source declares SVG aliases');
     assert(exported.includes('"totalYield":12'));
-    assert(exported.includes('urn:laserbatcher:metadata:1'));
+    assert(exported.includes('urn:laserbatcher:metadata:2'));
     assert(exported.includes('hidden-in-cut'));
     await page.screenshot({ path: path.join(artifacts, 'desktop.png'), fullPage: true });
+
+    const inspect = xml => page.evaluate(xml => {
+      const root = new DOMParser().parseFromString(xml, 'image/svg+xml').documentElement;
+      const record = [...root.children].filter(e => e.localName === 'metadata')
+        .flatMap(e => [...e.children]).find(e => e.localName === 'batch' && e.namespaceURI.startsWith('urn:laserbatcher:metadata:'));
+      const metadata = JSON.parse(record.textContent);
+      record.remove();
+      function signature(e) {
+        return [e.namespaceURI, e.localName,
+          [...e.attributes].filter(a => !a.name.startsWith('xmlns')).map(a => [a.namespaceURI, a.localName, a.value]).sort(),
+          [...e.childNodes].filter(n => n.nodeType === 1 || n.nodeType === 3 && n.textContent.trim()).map(n => n.nodeType === 1 ? signature(n) : n.textContent)];
+      }
+      return { metadata, artwork: signature(root) };
+    }, xml);
+    async function downloadUpdated() {
+      const pending = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Download updated SVG' }).click();
+      const file = await pending;
+      const destination = path.join(artifacts, 'metadata-' + file.suggestedFilename());
+      await file.saveAs(destination);
+      return { name: file.suggestedFilename(), xml: fs.readFileSync(destination, 'utf8') };
+    }
+    await page.locator('#svgUpload').setInputFiles({ name: 'renamed.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(exported) });
+    await page.waitForFunction(() => document.querySelector('#workMode')?.value === 'EditMetadata');
+    assert.equal(await page.locator('#sourceYield').inputValue(), '12');
+    assert.equal(await page.locator('#boxWidth').count(), 0, 'Metadata edits must not require fitting or rebuilding');
+    for (const [id, value] of [['runtimeHours', '25'], ['runtimeMinutes', '1'], ['runtimeSeconds', '1'], ['sourceYield', '11']]) {
+      await page.locator('#' + id).fill(value); await page.locator('#' + id).blur();
+    }
+    const updated = await downloadUpdated();
+    const initialState = await inspect(exported), updatedState = await inspect(updated.xml);
+    assert.equal(updatedState.metadata.estimatedRuntimeSeconds, 90061);
+    assert.equal(updatedState.metadata.yieldOverride, 11);
+    assert.equal(updatedState.metadata.sourceYield, 4);
+    assert.equal(updatedState.metadata.copyCount, 3);
+    assert.deepEqual(updatedState.artwork, initialState.artwork, 'Metadata edits must preserve all non-target XML');
+    await page.locator('#svgUpload').setInputFiles({ name: 'Conflict_x3.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(updated.xml) });
+    await page.getByRole('button', { name: 'Use embedded metadata' }).waitFor();
+    assert(await page.getByRole('button', { name: 'Download updated SVG' }).isDisabled());
+    assert.equal(await page.locator('#runtimeHours').inputValue(), '25');
+    await page.getByRole('button', { name: 'Use embedded metadata' }).click();
+    await page.getByRole('button', { name: 'Clear estimate' }).click();
+    const cleared = await downloadUpdated();
+    assert.equal((await inspect(cleared.xml)).metadata.estimatedRuntimeSeconds, undefined);
+    await page.locator('#runtimeSeconds').fill('0'); await page.locator('#runtimeSeconds').blur();
+    assert(await page.getByRole('button', { name: 'Download updated SVG' }).isDisabled());
+    await page.getByRole('button', { name: 'Clear estimate' }).click();
+    await page.screenshot({ path: path.join(artifacts, 'metadata-editor.png'), fullPage: true });
+    await page.locator('#workMode').selectOption('CreateBatch');
+    await page.locator('#runtimeSeconds').fill('60'); await page.locator('#runtimeSeconds').blur();
+    assert(await page.getByRole('button', { name: 'Render batch' }).isDisabled());
+    await page.locator('#runtimeSeconds').fill('30'); await page.locator('#runtimeSeconds').blur();
+    await page.locator('#orderNumber').fill('NewOrder'); await page.locator('#orderNumber').blur();
+    assert.equal(await page.locator('#runtimeSeconds').inputValue(), '30', 'Program fields must retain the whole-job estimate');
+    await page.locator('#copyQuantity').fill('2'); await page.locator('#copyQuantity').blur();
+    assert.equal(await page.locator('#runtimeSeconds').inputValue(), '', 'Changing copies must clear the estimate');
+
+    await page.locator('#svgUpload').setInputFiles(path.join(__dirname, 'Fixtures', 'glowforge-x1.svg'));
+    await page.locator('#glowforgeSettings summary').first().click();
+    assert((await page.locator('#glowforgeSettings').innerText()).includes('Speed=400'));
+    assert((await page.locator('#glowforgeSettings').innerText()).includes('2903.125'));
+    assert.equal(await page.getByRole('combobox', { name: /^Operation for text / }).count(), 0, 'Settings report must not be production artwork');
+    for (const id of ['boxWidth', 'boxHeight']) { await page.locator('#' + id).fill('50'); await page.locator('#' + id).blur(); }
+    await page.getByRole('combobox', { name: 'Operation for svg (0)', exact: true }).selectOption('ExteriorCut');
+    await page.getByRole('combobox', { name: 'Operation for score (0/1/1)', exact: true }).selectOption('Score');
+    await page.getByRole('button', { name: 'Render batch' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Glowforge native step order was changed' }).waitFor();
+    await page.screenshot({ path: path.join(artifacts, 'glowforge-settings.png'), fullPage: true });
 
     const unmapped = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1in" height="1in"><g id="InsideCut"><path id="outline" d="M1 1h10v10h-10z"/></g></svg>');
     await page.locator('#svgUpload').setInputFiles({ name: 'Plain.svg', mimeType: 'image/svg+xml', buffer: unmapped });
@@ -102,7 +170,7 @@ const assert = require('node:assert/strict');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(artifacts, 'mobile.png'), fullPage: true });
     assert.deepEqual(errors, []);
-    console.log('Browser smoke passed: upload, mapping, metadata correction, yield, both order modes, stale preview, download, visual equivalence at DPR 2, XML errors.');
+    console.log('Browser smoke passed: upload, mapping, metadata-only editing, runtime, conflicts, yield overrides, Glowforge settings and ordering, both batch modes, downloads, visual equivalence at DPR 2, XML errors.');
     console.log('Artifacts: ' + artifacts);
   } catch (error) { await page.screenshot({ path: path.join(artifacts, 'failure.png'), fullPage: true }); console.error(await page.locator('body').innerText()); throw error; }
   finally { await browser.close(); }

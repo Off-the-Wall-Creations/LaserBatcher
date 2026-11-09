@@ -175,6 +175,6 @@ public class SvgBatchTests
             Assert.Throws<FormatException>(() => SvgBatchService.Capacity(a, Settings() with { Spacing = -1 }));
         }
         finally { CultureInfo.CurrentCulture = culture; }
-        Assert.NotEmpty(SvgBatchService.Analyze($"<svg xmlns='{S}' width='25.4mm' height='1in'/>").Errors);
+        Assert.Empty(SvgBatchService.Analyze($"<svg xmlns='{S}' width='25.4mm' height='1in'/>").Errors);
     }
 }

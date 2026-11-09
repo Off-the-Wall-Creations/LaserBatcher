@@ -5,44 +5,101 @@
 
 <PageTitle>Laser Batcher - Off the Wall Creations</PageTitle>
 <h1>Laser Batcher</h1>
-<p>Arrange copies, assign laser operations, and export a batch with program metadata.</p>
+<p>Arrange copies and laser operations, or update an existing batch's metadata and estimated runtime.</p>
 <div class="row g-3 mb-3">
     <section class="col-lg-4"><fieldset class="border rounded p-3 h-100">
-        <legend>Source and sheet</legend>
+        <legend>@(EditingMetadata ? "Source" : "Source and sheet")</legend>
         <label for="svgUpload">Upload SVG</label>
         <InputFile id="svgUpload" class="form-control mb-2" OnChange="HandleFileUpload" accept=".svg" />
-        <p class="form-text">Source dimensions must use inches. Files are processed locally.</p>
+        <p class="form-text">Files are processed locally. Batch sources support in, mm, cm, pt, and pc dimensions.</p>
+        <label for="workMode">Workflow</label>
+        <select id="workMode" class="form-select mb-2" value="@workMode" @onchange="ModeChanged">
+            <option value="CreateBatch">Create batch</option>
+            <option value="EditMetadata" disabled="@(analysis?.Metadata == null)">Edit metadata</option>
+        </select>
+        @if (EditingMetadata)
+        {
+            <p class="form-text">Update program fields and runtime while preserving the existing artwork, layout, and machine settings.</p>
+        }
+        else
+        {
         <div class="row g-2">
-            <div class="col-6"><label for="boxWidth">Width (in)</label><input id="boxWidth" class="form-control" type="number" @bind="boxWidthInches" @bind:after="Invalidate" step="0.1" min="0.1" /></div>
-            <div class="col-6"><label for="boxHeight">Height (in)</label><input id="boxHeight" class="form-control" type="number" @bind="boxHeightInches" @bind:after="Invalidate" step="0.1" min="0.1" /></div>
-            <div class="col-6"><label for="horizontalMargin">Horizontal margin (in)</label><input id="horizontalMargin" class="form-control" type="number" @bind="horizontalMarginInches" @bind:after="Invalidate" step="0.1" min="0" /></div>
-            <div class="col-6"><label for="verticalMargin">Vertical margin (in)</label><input id="verticalMargin" class="form-control" type="number" @bind="verticalMarginInches" @bind:after="Invalidate" step="0.1" min="0" /></div>
-            <div class="col-6"><label for="spaceBetween">Spacing (in)</label><input id="spaceBetween" class="form-control" type="number" @bind="spaceBetweenInches" @bind:after="Invalidate" step="0.1" min="0" /></div>
-            <div class="col-6"><label for="copyQuantity">Copies</label><div class="input-group"><input id="copyQuantity" class="form-control" type="number" @bind="copyQuantity" @bind:after="Invalidate" min="1" /><button class="btn btn-outline-secondary" @onclick="CalculateFillSheet" disabled="@(analysis == null)">Fill</button></div></div>
+            <div class="col-6"><label for="boxWidth">Width (in)</label><input id="boxWidth" class="form-control" type="number" @bind="boxWidthInches" @bind:after="BatchChanged" step="0.1" min="0.1" /></div>
+            <div class="col-6"><label for="boxHeight">Height (in)</label><input id="boxHeight" class="form-control" type="number" @bind="boxHeightInches" @bind:after="BatchChanged" step="0.1" min="0.1" /></div>
+            <div class="col-6"><label for="horizontalMargin">Horizontal margin (in)</label><input id="horizontalMargin" class="form-control" type="number" @bind="horizontalMarginInches" @bind:after="BatchChanged" step="0.1" min="0" /></div>
+            <div class="col-6"><label for="verticalMargin">Vertical margin (in)</label><input id="verticalMargin" class="form-control" type="number" @bind="verticalMarginInches" @bind:after="BatchChanged" step="0.1" min="0" /></div>
+            <div class="col-6"><label for="spaceBetween">Spacing (in)</label><input id="spaceBetween" class="form-control" type="number" @bind="spaceBetweenInches" @bind:after="BatchChanged" step="0.1" min="0" /></div>
+            <div class="col-6"><label for="copyQuantity">Copies</label><div class="input-group"><input id="copyQuantity" class="form-control" type="number" @bind="copyQuantity" @bind:after="BatchChanged" min="1" /><button class="btn btn-outline-secondary" @onclick="CalculateFillSheet" disabled="@(analysis == null)">Fill</button></div></div>
         </div>
+        @if (analysis != null && !analysis.Errors.Any()) { <p class="form-text mt-2">Source canvas: @analysis.Width.ToString("0.###") × @analysis.Height.ToString("0.###") in. Canvas size is preserved.</p> }
+        }
     </fieldset></section>
     <section class="col-lg-4"><fieldset class="border rounded p-3 h-100">
         <legend>Program metadata</legend>
         <label for="partName">Part name (optional)</label><input id="partName" class="form-control mb-2" @bind="partName" @bind:after="MetadataChanged" />
         <label for="orderNumber">Order number (optional)</label><input id="orderNumber" class="form-control mb-2" @bind="orderNumber" @bind:after="MetadataChanged" />
         <label for="batch">Batch (optional)</label><input id="batch" class="form-control mb-2" @bind="batch" @bind:after="MetadataChanged" />
-        <label for="sourceYield">Parts per source SVG</label><input id="sourceYield" class="form-control mb-2" type="number" @bind="sourceYield" @bind:after="MetadataChanged" min="1" max="2147483647" />
-        <p class="form-text">Total yield = parts per source × copies.</p>
+        <label for="sourceYield">@(EditingMetadata ? "Total yield" : "Parts per source SVG")</label><input id="sourceYield" class="form-control mb-2" type="number" @bind="sourceYield" @bind:after="MetadataChanged" min="1" max="2147483647" />
+        <p class="form-text">@(EditingMetadata ? "A changed total is recorded as an explicit override; original batch counts are retained." : "Total yield = parts per source × copies.")</p>
         <p class="text-break mb-0"><strong>Export filename:</strong> <span id="filenamePreview">@FilenamePreview</span></p>
     </fieldset></section>
     <section class="col-lg-4"><fieldset class="border rounded p-3 h-100">
-        <legend>Operation order</legend>
+        <legend>Estimated Runtime</legend>
+        <p class="form-text">Optional estimate for running the entire output SVG once, on any laser. Leave blank if unknown.</p>
+        <div class="row g-2 mb-2">
+            <div class="col-4"><label for="runtimeHours">Hours</label><input id="runtimeHours" class="form-control" inputmode="numeric" @bind="runtimeHours" @bind:after="Invalidate" /></div>
+            <div class="col-4"><label for="runtimeMinutes">Minutes</label><input id="runtimeMinutes" class="form-control" inputmode="numeric" @bind="runtimeMinutes" @bind:after="Invalidate" /></div>
+            <div class="col-4"><label for="runtimeSeconds">Seconds</label><input id="runtimeSeconds" class="form-control" inputmode="numeric" @bind="runtimeSeconds" @bind:after="Invalidate" /></div>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="ClearRuntime">Clear estimate</button>
+        @if (!EditingMetadata)
+        {
+        <hr />
+        <h2 class="h5">Operation order</h2>
         <label for="ordering">Ordering</label>
-        <select id="ordering" class="form-select mb-2" @bind="ordering" @bind:after="Invalidate"><option value="@OrderingMode.WithinEachCopy">Within each copy</option><option value="@OrderingMode.AcrossSheet">Across the sheet</option></select>
+        <select id="ordering" class="form-select mb-2" @bind="ordering" @bind:after="BatchChanged"><option value="@OrderingMode.WithinEachCopy">Within each copy</option><option value="@OrderingMode.AcrossSheet">Across the sheet</option></select>
         <p>Engrave → Score → InteriorCut → ExteriorCut</p>
         <p class="form-text">Per-copy ordering completes copies sooner. Sheet ordering keeps stock intact through engraving and scoring. Laser software controls actual execution order.</p>
         <label for="woodColor">Preview background</label><select id="woodColor" class="form-select" @bind="woodColor" @bind:after="Invalidate"><option value="#8B4513">Red Oak</option><option value="#5D473A">Walnut</option><option value="#B22222">Cherry</option></select>
+        }
     </fieldset></section>
 </div>
 @if (sourceNameError != null) { <p class="alert alert-danger" role="alert">Source filename: @sourceNameError Correct the program metadata fields to continue.</p> }
 @if (error != null) { <p class="alert alert-danger" role="alert">@error</p> }
+@if (RuntimeError != null) { <p class="alert alert-danger" role="alert">@RuntimeError</p> }
+@if (notice != null) { <p class="alert alert-info" role="status">@notice</p> }
+@if (metadataConflict)
+{
+    <div class="alert alert-warning" role="alert">
+        <p>The filename and embedded program metadata disagree. Choose a source, or correct the program fields.</p>
+        <p>Embedded: @ProgramNameParser.Format(analysis!.Metadata!.Program)<br />Filename: @ProgramNameParser.Format(filenameCandidate!)</p>
+        <button class="btn btn-outline-secondary me-2" @onclick="() => UseProgram(analysis!.Metadata!.Program)">Use embedded metadata</button>
+        <button class="btn btn-outline-secondary" @onclick="() => UseProgram(filenameCandidate!)">Use filename metadata</button>
+    </div>
+}
+@foreach (var warning in (analysis?.Warnings ?? Array.Empty<string>()).Concat(rendering?.Warnings ?? Array.Empty<string>()))
+{ <p class="alert alert-warning" role="alert">@warning</p> }
+@if (analysis?.Glowforge.Steps.Count > 0)
+{
+    <details class="mb-3" id="glowforgeSettings">
+        <summary>Glowforge settings — @analysis.Glowforge.Steps.Count steps (read-only)</summary>
+        <p class="form-text">Raw exported values and readable report values are shown separately. Mapping changes step order; saved machine operations and settings are retained.</p>
+        <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Native order / binding</th><th>Artwork</th><th>Raw settings</th><th>Readable report</th></tr></thead><tbody>
+        @foreach (var step in analysis.Glowforge.Steps.OrderBy(s => s.Order))
+        {
+            <tr><td>@step.Order <small class="d-block text-break">@step.Class</small></td><td>@string.Join(", ", step.ArtworkKeys)</td>
+                <td>@foreach (var value in step.RawAttributes.Where(p => p.Key != "class" && p.Key != "order")) { <div>@value.Key: @value.Value</div> }</td>
+                <td>@foreach (var line in step.ReportLines) { <div>@line</div> }</td></tr>
+        }
+        </tbody></table></div>
+        @if (analysis.Glowforge.ReportLines.Count > 0)
+        { <details><summary>Original settings report</summary>@foreach (var line in analysis.Glowforge.ReportLines) { <div>@line</div> }</details> }
+    </details>
+}
 @if (analysis != null)
 {
+    @if (!EditingMetadata)
+    {
     @foreach (var issue in analysis.Errors) { <p class="alert alert-danger" role="alert">@issue</p> }
     <details class="mb-3" open>
         <summary>Operation mapping — @UnresolvedCount unresolved production elements</summary>
@@ -54,21 +111,29 @@
                     @if (!analysis.Errors.Any()) { <img @key="analysis" class="mapping-thumbnail" data-source-key="@item.Key" alt="@($"Preview of {item.Label}")" title="@item.Label" width="96" height="64" /> }
                     <span><span class="@(item.Production ? "" : "fw-semibold")">@item.Label</span><small class="text-muted d-block">@item.Element · @item.Key</small></span>
                 </div></td>
-                    <td>@(item.Production ? Resolved.GetValueOrDefault(item.Key)?.ToString() ?? "Unresolved" : "Group") @if (item.Suggestion != null) { <small>Suggested: @item.Suggestion</small> }</td>
+                    <td>@(item.Production ? Resolved.GetValueOrDefault(item.Key)?.ToString() ?? "Unresolved" : "Group") @if (item.Suggestion != null) { <small class="d-block">Suggested: @item.Suggestion</small> }</td>
                     <td><select class="form-select form-select-sm" aria-label="@($"Operation for {item.Label} ({item.Key})")" value="@MappingValue(item.Key)" @onchange="e => SetMapping(item.Key, e.Value?.ToString())"><option value="">From source / parent</option>@foreach (var operation in Enum.GetValues<LaserOperation>()) { <option value="@operation">@operation</option> }</select></td>
                 </tr>
             }
         </tbody></table></div>
     </details>
+    }
     <details class="mb-3"><summary>Hidden and semantic content — @analysis.Items.Count(i => i.Hidden) elements preserved</summary>
         <p>Hidden content is preserved separately from production ordering. The download includes an inventory and copy/reference mappings.</p>
         <ul>@foreach (var item in analysis.Items.Where(i => i.Hidden && (i.Element == "g" || i.SemanticCategory != null))) { <li>@item.Label — @item.Visibility (@item.Key)</li> }</ul>
     </details>
 }
 <div class="d-flex gap-2 mb-3">
-    <button class="btn btn-primary" @onclick="RenderGrid" disabled="@(analysis == null || analysis.Errors.Any() || UnresolvedCount > 0 || sourceNameError != null)">Render batch</button>
-    @if (rendering != null) { <button class="btn btn-success" @onclick="SaveBatch">Download SVG</button><button class="btn btn-outline-secondary" @onclick="Invalidate">Clear preview</button> }
+    @if (EditingMetadata)
+    { <button class="btn btn-success" @onclick="SaveBatch" disabled="@(MetadataBlocked || analysis?.Metadata == null)">Download updated SVG</button> }
+    else
+    {
+        <button class="btn btn-primary" @onclick="RenderGrid" disabled="@(MetadataBlocked || analysis!.Errors.Any() || UnresolvedCount > 0)">Render batch</button>
+        @if (rendering != null) { <button class="btn btn-success" @onclick="SaveBatch">Download SVG</button><button class="btn btn-outline-secondary" @onclick="Invalidate">Clear preview</button> }
+    }
 </div>
+@if (!EditingMetadata)
+{
 <div class="svg-workspace">
     @if (rendering != null)
     {
@@ -76,3 +141,4 @@
     }
     else { <p class="m-3">@(analysis == null ? "Upload an SVG to begin." : "Resolve any errors, then render the batch.")</p> }
 </div>
+}
