@@ -221,7 +221,7 @@
       "url": "CNAME"
     },
     {
-      "hash": "sha256-4dQShtfQfSkvoGzJBlqAKKNaC\/S0QYyid+WpidogCVk=",
+      "hash": "sha256-9MM3BtJmYJ75bOtK+jzScsmv\/\/iEuwUIaVGhvRnYx0g=",
       "url": "css\/app.css"
     },
     {
@@ -297,7 +297,7 @@
       "url": "icon-maskable-512.png"
     },
     {
-      "hash": "sha256-eLdox0rs3zIFyL5z\/1SY7ij9dzOrevWvGf9z0g+mL6M=",
+      "hash": "sha256-cCtPgG+e3QUuoiwe8UrY8KNMHU7Xi81y2ORTpuH9H1Y=",
       "url": "index.html"
     },
     {
@@ -6333,6 +6333,10 @@
       "url": "sendCustomEvent.js"
     },
     {
+      "hash": "sha256-UUmebQKqm3bwOm0CZLhmyWI98wHPqhnb5e5dWUmMDpc=",
+      "url": "startup.js"
+    },
+    {
       "hash": "sha256-FRyB\/oMf3fj17S0RLu8IhUnmwE\/4WgiUnQS0QcQ80mU=",
       "url": "supportButton.js"
     },
@@ -6345,5 +6349,5 @@
       "url": "workspace.js"
     }
   ],
-  "version": "4rN3zifo"
+  "version": "LOkE0ghz"
 };

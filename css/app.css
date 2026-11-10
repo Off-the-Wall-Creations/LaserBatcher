@@ -68,6 +68,13 @@ input[type="number"], input[inputmode="numeric"], .table, .quantity { font-varia
 .loading-brand { text-align: center; padding: 16vh 1rem 0; }
 .loading-brand h1 { font-size: 2rem; margin: .75rem 0 .25rem; }
 .loading-brand p { color: var(--lb-muted); }
+.loading-brand { max-width: 40rem; margin-inline: auto; }
+.startup-placeholder { height: 100%; overflow: auto; }
+.loading-progress[hidden], .loading-progress-text[hidden] { display: none; }
+#blazor-error-ui p { margin: 0 0 .5rem; }
+#blazor-error-ui button + button { margin-left: .5rem; }
+#blazor-error-ui { max-height: 80dvh; overflow: auto; }
+#app-update-notice:not([hidden]) { position: fixed; z-index: 999; bottom: 0; left: 0; right: 0; display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; padding: .75rem 1rem; max-height: 40dvh; overflow: auto; background: var(--lb-info-bg); color: var(--lb-info-text); border-top: 1px solid var(--lb-border); font-size: .875rem; }
 .loading-progress { display: block; width: 6rem; height: 6rem; margin: 1rem auto; }
 .loading-progress circle { fill: none; stroke: var(--lb-border); stroke-width: .5rem; transform-origin: 50% 50%; transform: rotate(-90deg); }
 .loading-progress circle:last-child { stroke: var(--lb-primary); stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%; transition: stroke-dasharray .05s ease-in-out; }
