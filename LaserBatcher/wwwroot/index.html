@@ -15,6 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#F7F3EC" />
     <title>LaserBatcher</title>
+    <meta name="description" content="Arrange SVG copies for laser cutting, scoring and engraving. Map or ignore operations, preview batches, and edit program metadata and estimated runtime locally in your browser." />
     <base href="/" />
     <script src="theme.js"></script>
     <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
@@ -30,31 +31,33 @@
 
 <body>
     <div id="app">
-        <div class="loading-brand"><img src="brand/laserbatcher.svg" width="64" height="64" alt="" /><h1>LaserBatcher</h1><p>Preparing your workspace</p></div>
+        <div class="startup-placeholder">
+        <div class="loading-brand">
+            <img src="brand/laserbatcher.svg" width="64" height="64" alt="" />
+            <h1>LaserBatcher</h1>
+            <p>Arrange SVG copies for laser cutting, scoring and engraving.</p>
+            <p>Map or ignore operations, inspect your batch, and edit program metadata and estimated runtime. Your SVG files are processed locally in your browser.</p>
+            <p id="startup-status" role="status">Opening the interactive workspace…</p>
+            <noscript><p>This workspace requires JavaScript. Enable it in your browser, then reload this page.</p></noscript>
+        </div>
         <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
             <circle r="40%" cx="50%" cy="50%" />
         </svg>
         <div class="loading-progress-text"></div>
+        </div>
     </div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
-    </div>
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
-                .catch(error => console.warn('LaserBatcher offline support is unavailable.', error));
-        }
-    </script>
+    <!-- Populated only when a browser observes an actual startup/runtime error. -->
+    <div id="blazor-error-ui" role="alert" style="display:none"></div>
+    <aside id="app-update-notice" role="status" hidden></aside>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
     <script src="lib/jquery/jquery.min.js"></script>
     <script src="lib/bootstrap/js/bootstrap.min.js"></script>
     <script src="dpi.js"></script>
     <script src="saveAs.js"></script>
     <script src="sendCustomEvent.js"></script>
+    <script src="startup.js"></script>
 </body>
 
 </html>
