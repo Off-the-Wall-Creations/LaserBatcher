@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2in" height="1.5in" viewBox="0 0 192 144" id="GeometricTag">
+  <title>Synthetic geometric tag for LaserBatcher guides</title>
+  <g id="Engrave" fill="#292524"><path d="M98 45l14 25H84z"/><circle cx="98" cy="90" r="5"/><path d="M121 46h25v25h-25z"/></g>
+  <g id="Score" fill="none" stroke="#9A4C0A" stroke-width="1.25"><path d="M68 112h84M68 119h48"/><circle cx="137" cy="93" r="11"/></g>
+  <g id="InteriorCut" fill="none" stroke="#2563a6" stroke-width="1.25"><circle cx="33" cy="72" r="8"/></g>
+  <g id="ExteriorCut" fill="none" stroke="#292524" stroke-width="1.5"><path d="M48 12H170a10 10 0 0 1 10 10v100a10 10 0 0 1-10 10H48L12 96V48z"/></g>
+  <g id="Construction" fill="none" stroke="#948779" stroke-width=".5" stroke-dasharray="3 3"><path d="M2 72h188M96 2v140"/></g>
+</svg>

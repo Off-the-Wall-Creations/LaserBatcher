@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>LaserBatcher — SVG batching for laser cutting</title>
+  <desc>Warm charcoal and amber sharing card with the stacked sheets icon and repeated geometric tags.</desc>
+  <rect width="1200" height="630" fill="#1C1917"/>
+  <rect x="32" y="32" width="1136" height="566" rx="24" fill="#292524" stroke="#80756B"/>
+  <!-- Editable version of the existing application icon. -->
+  <g transform="translate(80 78) scale(1.5)">
+    <rect width="64" height="64" rx="14" fill="#1C1917"/>
+    <path d="M38 10H14a4 4 0 0 0-4 4v24" fill="none" stroke="#BDB4A8" stroke-width="3" stroke-linecap="round"/>
+    <path d="M44 17H21a4 4 0 0 0-4 4v23" fill="none" stroke="#BDB4A8" stroke-width="3" stroke-linecap="round"/>
+    <rect x="24" y="24" width="30" height="30" rx="4" fill="#292524" stroke="#FAF7F2" stroke-width="3"/>
+    <path d="M54 10l-7 10" stroke="#F5A524" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="44" cy="24" r="4" fill="#F5A524"/>
+  </g>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="198" y="137" font-size="54" font-weight="600" fill="#FAF7F2">LaserBatcher</text>
+    <text x="82" y="271" font-size="50" font-weight="600" fill="#FAF7F2">SVG batching</text>
+    <text x="82" y="334" font-size="50" font-weight="600" fill="#FAF7F2">for laser cutting</text>
+    <text x="84" y="397" font-size="25" fill="#BDB4A8">Arrange copies. Map operations.</text>
+    <text x="84" y="435" font-size="25" fill="#BDB4A8">Keep job metadata with your SVG.</text>
+    <text x="84" y="537" font-size="23" fill="#F5A524">by Off the Wall Creations</text>
+  </g>
+  <defs>
+    <g id="tag" stroke-width="2.5">
+      <path d="M28 0h112a8 8 0 0 1 8 8v80a8 8 0 0 1-8 8H28L0 68V28z" fill="#1C1917" stroke="#F5A524"/>
+      <circle cx="23" cy="48" r="6" fill="none" stroke="#FAF7F2"/>
+      <path d="M73 23l13 22H60z" fill="#F5A524"/>
+      <path d="M56 67h66M56 77h38" stroke="#BDB4A8"/>
+    </g>
+  </defs>
+  <g transform="translate(746 167)">
+    <use href="#tag"/><use href="#tag" x="178"/>
+    <use href="#tag" y="128"/><use href="#tag" x="178" y="128"/>
+    <use href="#tag" y="256"/><use href="#tag" x="178" y="256"/>
+  </g>
+</svg>

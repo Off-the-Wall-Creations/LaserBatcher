@@ -9,6 +9,8 @@ Choose System, Light, or Dark appearance in the header. Operation Mapping groups
 
 The [GitHub Pages hosting guide](docs/github-pages.md) explains the custom-domain root path, deployment checks, PWA integrity hashes, and recovery from stale cached builds.
 
+The static [About & guides](https://batcher.offthewallcreations.xyz/about/) pages explain SVG preparation, batching, operation mapping, metadata and runtime without requiring JavaScript. See [SEO maintenance and release instructions](docs/seo.md) for validation, synthetic screenshots, Lighthouse audits and the separate Search Console rollout.
+
 This program supports Generic SVG and Inkscape-labelled designs with the following considerations:
 
  - Document dimensions must explicitly use **in, mm, cm, pt, or pc**. Sheet controls remain in inches; unitless and pixel-only root dimensions are rejected.

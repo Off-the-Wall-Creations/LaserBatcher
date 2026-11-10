@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F7F3EC" />
+    <title>Prepare SVG Files for Laser Batching | LaserBatcher</title>
+    <meta name="description" content="Prepare SVG dimensions, viewBox, strokes, fills and operation labels for LaserBatcher. Learn supported units and how to handle embedded resources." />
+    <link rel="canonical" href="https://batcher.offthewallcreations.xyz/guides/svg-preparation/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LaserBatcher" />
+    <meta property="og:title" content="Prepare SVG Files for Laser Batching | LaserBatcher" />
+    <meta property="og:description" content="Prepare SVG dimensions, viewBox, strokes, fills and operation labels for LaserBatcher. Learn supported units and how to handle embedded resources." />
+    <meta property="og:url" content="https://batcher.offthewallcreations.xyz/guides/svg-preparation/" />
+    <meta property="og:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SVG preparation guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Prepare SVG Files for Laser Batching | LaserBatcher" />
+    <meta name="twitter:description" content="Prepare SVG dimensions, viewBox, strokes, fills and operation labels for LaserBatcher. Learn supported units and how to handle embedded resources." />
+    <meta name="twitter:url" content="https://batcher.offthewallcreations.xyz/guides/svg-preparation/" />
+    <meta name="twitter:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta name="twitter:image:alt" content="SVG preparation guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="icon" type="image/svg+xml" href="/brand/laserbatcher.svg" />
+    <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "LaserBatcher",
+          "item": "https://batcher.offthewallcreations.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "About & guides",
+          "item": "https://batcher.offthewallcreations.xyz/about/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "SVG preparation",
+          "item": "https://batcher.offthewallcreations.xyz/guides/svg-preparation/"
+        }
+      ]
+    }
+  ]
+}</script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4X5DN7KDYD"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-4X5DN7KDYD');</script>
+    <script src="/public-site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><div class="site-header-inner">
+    <a class="site-brand" href="/about/"><img src="/brand/laserbatcher.svg" width="40" height="40" alt="" /><span><strong>LaserBatcher</strong><small>by Off the Wall Creations</small></span></a>
+    <nav aria-label="Main"><a href="/about/">About &amp; guides</a><a class="button-link" href="/">Open LaserBatcher</a></nav>
+    <div class="public-theme-slot"><div class="public-theme" hidden><label for="public-appearance">Appearance</label><select id="public-appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+</div></header>
+<main id="main" class="public-main" tabindex="-1">
+<nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">LaserBatcher</a></li><li><a href="/about/">About &amp; guides</a></li><li><span aria-current="page">SVG preparation</span></li></ol></nav>
+<article><p class="eyebrow">LaserBatcher guide</p><h1>Prepare an SVG that imports and previews clearly</h1>
+
+<p class="lede">A clear physical size and deliberate styling make an SVG easier to batch and inspect. Prepare those details in your drawing application before uploading.</p>
+<h2>Give the root SVG a physical size</h2>
+<p>Set explicit positive Width and Height using <code>in</code>, <code>mm</code>, <code>cm</code>, <code>pt</code>, or <code>pc</code>. Root dimensions expressed only as pixels, unitless numbers or percentages are ambiguous for physical batching and are rejected. A viewBox alone does not establish the physical dimensions.</p>
+<p>For a two-inch-wide, one-and-a-half-inch-high design, a root such as <code>&lt;svg width="2in" height="1.5in" viewBox="0 0 192 144"&gt;</code> provides both physical size and drawing coordinates. The viewBox maps coordinates into that size; it does not need to use inches. Keep its proportions and preserveAspectRatio intentional to avoid unexpected empty space or clipping.</p>
+<p>Sheet controls use inches and output uses 96 SVG units per inch. Export preserves the source canvas footprint, including whitespace. Resize the page around your design in the drawing application if that whitespace is unwanted.</p>
+<h2>Make strokes, fills and labels deliberate</h2>
+<ul><li>Use consistent, nonzero strokes and enough contrast to see paths against the preview background.</li><li>Choose fills and opacity intentionally. An unfilled outline and a solid shape can represent very different artwork.</li><li>Use explicit operation labels such as Engrave, Score, InteriorCut and ExteriorCut on groups or elements. A plain Cut label cannot choose between interior and exterior cutting.</li><li>Check compound paths, clipping and transforms in Original preview as well as Enhanced inspection.</li></ul>
+<p>Enhanced mapping thumbnails use contrasting colors and non-scaling strokes for inspection only. This avoids changing production styling just to make a small preview readable. The main Source/Batch canvas and exported SVG retain production colors and strokes. Use the mapping panel's Original option to compare.</p>
+<h2>Keep dependencies inside the SVG</h2>
+<p>Embed raster images instead of linking to files on your computer or remote URLs. Keep referenced definitions, clipping paths and clone targets in the same document, with unique IDs. Text appearance depends on fonts available in the consuming application; convert text to paths in your editor when exact lettering is essential.</p>
+<p>LaserBatcher preserves supported geometry, transforms, IDs and references, namespaces, licensing, hidden content and unknown metadata. Review <strong>Hidden content</strong> for non-visible material and semantic information. Hidden content is not a substitute for assigning Ignore to visible production artwork.</p>
+<h2>Check supported-format limits</h2>
+<p>Simple class-based stroke and fill rules, including the supported Glowforge export pattern, can be resolved for batching. Complex stylesheets and unsupported dependency transformations can block export. External resources and active content are not supported for batching. Use self-contained, static SVG markup and resolve the actionable message shown in Issues.</p>
+<p>Recognized Glowforge settings reports appear separately from artwork and retain their original information. Ordinary text remains artwork. Raw machine values and readable report values are shown separately, without assuming a conversion between them.</p>
+<p>A file may be valid for metadata-only editing even when it cannot be batched or previewed. That workflow requires an unambiguous supported LaserBatcher metadata record; see the <a href="/guides/metadata-and-runtime/">metadata guide</a>.</p>
+<aside class="related" aria-label="Related guides"><h2>Keep going</h2><ul><li><a href="/guides/svg-batching/">SVG batching</a></li><li><a href="/guides/metadata-and-runtime/">Metadata &amp; runtime</a></li><li><a href="/guides/operation-mapping/">Operation mapping</a></li></ul><p><a class="button-link" href="/">Open LaserBatcher</a></p></aside>
+</article></main>
+<footer class="site-footer"><div class="site-footer-inner"><p>LaserBatcher <span class="muted">by Off the Wall Creations</span></p><nav aria-label="Footer"><a href="/about/">About &amp; guides</a><a href="https://www.buymeacoffee.com/tbm0115">Buy me a coffee</a></nav></div></footer>
+</body></html>

@@ -5,6 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { preparePages, verifyPages } = require('../tools/prepare-pages.cjs');
+const { routes, fileFor } = require('../tools/verify-public-pages.cjs');
+const { createServer } = require('./serve-published.cjs');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'laserbatcher-pages-'));
@@ -14,13 +16,25 @@ function fixture(t) {
     fs.rmSync(root, { recursive: true, force: true });
   });
   const files = {
-    'index.html': '<html><head><base href="/" /><link href="manifest.json" rel="manifest" /><link href="css/app.css" rel="stylesheet" /></head><body><script src="_framework/blazor.webassembly.js"></script><script src="https://example.com/external.js"></script></body></html>',
     'CNAME': 'batcher.offthewallcreations.xyz\n',
     'manifest.json': '{"name":"LaserBatcher","start_url":"./"}',
     'css/app.css': 'body { color: black; }\n',
     'service-worker.js': 'self.addEventListener("fetch", () => {});\n',
     '_framework/blazor.webassembly.js': '// Blazor placeholder\n'
   };
+  // Use the actual authored documents. Compiled/runtime resources may be placeholders;
+  // public files and hashes must satisfy the same contract as a published build.
+  const source = path.resolve(__dirname, '../LaserBatcher/wwwroot');
+  const add = name => { if (!(name in files)) files[name] = fs.existsSync(path.join(source,name)) ? fs.readFileSync(path.join(source,name)) : '// compiled placeholder\n'; };
+  for (const name of [...routes.map(fileFor), '404.html','robots.txt','sitemap.xml','brand/laserbatcher-sharing.png','brand/laserbatcher-sharing.svg']) add(name);
+  for (const name of [...routes.map(fileFor),'404.html']) {
+    files[name] = files[name].toString();
+    for (const m of files[name].matchAll(/<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["'][^>]*>/gi)) {
+      if (m[0].includes('rel="canonical"')) continue;
+      const resource = new URL(m[1], 'https://batcher.offthewallcreations.xyz/'+name);
+      if (resource.origin === 'https://batcher.offthewallcreations.xyz') add(resource.pathname.slice(1));
+    }
+  }
   const write = (name, content) => { const file = path.join(root, name); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, content); };
   for (const [name, content] of Object.entries(files)) write(name, content);
   const assets = Object.entries(files).map(([url, content]) => ({ url, hash: 'sha256-' + createHash('sha256').update(content).digest('base64') }));
@@ -32,8 +46,8 @@ function fixture(t) {
 test('root-domain preparation preserves hashed bytes and writes Pages support files', t => {
   const f = fixture(t);
   assert.equal(preparePages(f.root).assetCount, Object.keys(f.files).length);
-  for (const [name, content] of Object.entries(f.files)) assert.equal(fs.readFileSync(path.join(f.root, name), 'utf8'), content);
-  assert.equal(fs.readFileSync(path.join(f.root, '404.html'), 'utf8'), f.files['index.html']);
+  for (const [name, content] of Object.entries(f.files)) assert(fs.readFileSync(path.join(f.root, name)).equals(Buffer.from(content)), name);
+  assert.equal(fs.readFileSync(path.join(f.root, '404.html'), 'utf8'), f.files['404.html']);
   assert(fs.existsSync(path.join(f.root, '.nojekyll')));
   assert.equal(fs.readFileSync(path.join(f.root, '.gitattributes'), 'utf8'), '* -text\n');
   assert.doesNotThrow(() => preparePages(f.root), 'Preparation is repeatable');
@@ -80,4 +94,51 @@ test('rejects duplicate or out-of-directory manifest paths', t => {
   assert.throws(() => verifyPages(f.root), /Duplicate PWA asset/);
   f.assets.at(-1).url = '../outside.js'; f.writeManifest();
   assert.throws(() => verifyPages(f.root), /outside the publish directory/);
+});
+
+test('checks canonical documents separately from assets and rejects aliases or duplicate titles', t => {
+  const f = fixture(t);
+  f.write('about/index.html', f.files['about/index.html'].replace('rel="canonical" href="https://batcher.offthewallcreations.xyz/about/"', 'rel="canonical" href="https://batcher.offthewallcreations.xyz/about/index.html?campaign=test"'));
+  assert.throws(()=>verifyPages(f.root), /expected one absolute canonical/);
+  f.write('about/index.html', f.files['about/index.html'].replace(/<title>[^<]+/, '<title>LaserBatcher | SVG Batching for Laser Cutting'));
+  assert.throws(()=>verifyPages(f.root), /duplicate title/);
+});
+
+test('validates JSON-LD, internal links, 404, screenshot and sharing assets', t => {
+  const f = fixture(t);
+  for (const [file, from, to, expected] of [
+    ['about/index.html', '"@context":', 'invalid:', /JSON|Unexpected|property/],
+    ['about/index.html', 'href="/guides/svg-batching/"', 'href="/missing/"', /Missing published asset/],
+    ['404.html', 'content="noindex"', 'content="index"', /must be noindex/]
+  ]) {
+    f.write(file, f.files[file].replace(from,to)); assert.throws(()=>verifyPages(f.root),expected); f.write(file,f.files[file]);
+  }
+  fs.unlinkSync(path.join(f.root,'images/batch-workspace.jpg'));
+  assert.throws(()=>verifyPages(f.root),/Missing published asset: images\/batch-workspace.jpg/);
+  f.write('images/batch-workspace.jpg',f.files['images/batch-workspace.jpg']);
+  const png=Buffer.from(f.files['brand/laserbatcher-sharing.png']); png.writeUInt32BE(1000,16); f.write('brand/laserbatcher-sharing.png',png);
+  assert.throws(()=>verifyPages(f.root),/1200×630 PNG/);
+});
+
+test('requires all six canonical URLs in sitemap and public documents in the PWA manifest', t => {
+  const f=fixture(t);
+  f.write('sitemap.xml',f.files['sitemap.xml'].toString().replace('<urlset ', '<url><loc>https://example.com/</loc></url><urlset '));
+  assert.throws(()=>verifyPages(f.root),/exactly the six/);
+  f.write('sitemap.xml',f.files['sitemap.xml']);
+  f.assets.splice(f.assets.findIndex(a=>a.url==='about/index.html'),1); f.writeManifest();
+  assert.throws(()=>verifyPages(f.root),/must include about\/index.html/);
+});
+
+test('local host reproduces directory indexes, slash redirects, query strings and custom 404 status', async t => {
+  const f=fixture(t), server=createServer(f.root);
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const redirect=await fetch(base+'/about?source=test',{redirect:'manual'});
+  assert.equal(redirect.status,301); assert.equal(redirect.headers.get('location'),'/about/?source=test');
+  assert.equal(await (await fetch(base+'/about/')).text(),f.files['about/index.html']);
+  assert.equal(await (await fetch(base+'/about/index.html')).text(),f.files['about/index.html']);
+  const missing=await fetch(base+'/not-a-page'); assert.equal(missing.status,404);
+  assert.equal(await missing.text(),f.files['404.html']);
+  assert.equal((await fetch(base+'/%2e%2e%5coutside')).status,403);
 });

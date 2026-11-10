@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
+const { verifyPublicPages } = require('./verify-public-pages.cjs');
 
 const site = new URL('https://batcher.offthewallcreations.xyz/');
 
@@ -24,12 +25,7 @@ function verifyPages(directory) {
   if (readAsset('CNAME').toString('utf8').trim() !== site.hostname)
     throw new Error(`CNAME must contain ${site.hostname}.`);
 
-  // Catch root/subdirectory mistakes for every local script and stylesheet,
-  // including the manifest, icons, and the compiled Blazor scoped stylesheet.
-  for (const match of html.matchAll(/<(?:script|link|img)\b[^>]*?\b(?:src|href)\s*=\s*["']([^"']+)["'][^>]*>/gi)) {
-    const resource = new URL(match[1], site);
-    if (resource.origin === site.origin) readAsset(decodeURIComponent(resource.pathname.slice(1)));
-  }
+  const publicPages = verifyPublicPages(readAsset);
   for (const required of ['manifest.json', 'service-worker.js', '_framework/blazor.webassembly.js']) readAsset(required);
 
   const manifestScript = readAsset('service-worker-assets.js').toString('utf8');
@@ -46,12 +42,15 @@ function verifyPages(directory) {
       throw new Error(`PWA integrity mismatch: ${asset.url}. A published file was changed after hashing; update source files before dotnet publish.`);
   }
   if (!urls.has('index.html')) throw new Error('The PWA manifest must include index.html.');
+  for (const file of publicPages.requiredAssets) {
+    if (!urls.has(file)) throw new Error(`The PWA manifest must include ${file}.`);
+  }
   return { root, assetCount: urls.size };
 }
 
 function preparePages(directory) {
   const result = verifyPages(directory);
-  fs.copyFileSync(path.join(result.root, 'index.html'), path.join(result.root, '404.html'));
+  // 404.html and every public page were authored before publish and hashing.
   fs.writeFileSync(path.join(result.root, '.nojekyll'), '');
   // A branch-based deploy must preserve the exact bytes used by Blazor's hashes.
   fs.writeFileSync(path.join(result.root, '.gitattributes'), '* -text\n');

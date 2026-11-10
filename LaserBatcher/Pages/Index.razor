@@ -1,8 +1,9 @@
 @page "/"
+@page "/index.html"
 @using LaserBatcher.Services
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
-<PageTitle>LaserBatcher — by Off the Wall Creations</PageTitle>
+<PageTitle>LaserBatcher | SVG Batching for Laser Cutting</PageTitle>
 <div class="workspace-shell">
     <div class="workspace-toolbar" role="group" aria-label="Job toolbar">
         <label class="btn btn-sm btn-outline-secondary open-svg" for="svgUpload">Open SVG<InputFile id="svgUpload" OnChange="HandleFileUpload" accept=".svg" aria-label="Open SVG" /></label>

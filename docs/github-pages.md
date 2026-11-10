@@ -18,8 +18,8 @@ If the hosting path changes in the future, update the **source** base tag and th
 
 After publishing, `node tools/prepare-pages.cjs release/wwwroot`:
 
-- Verifies the root base, CNAME, all local HTML resource paths, required framework files, and every generated PWA asset hash.
-- Copies the unchanged index to `404.html` for the Pages fallback.
+- Verifies the root base, CNAME, all six canonical documents, metadata, internal links, public assets, required framework files, and every generated PWA asset hash.
+- Verifies the dedicated static, noindex `404.html` that was included before publication. Unknown URLs retain HTTP 404; they do not receive a copy of the workspace.
 - Adds `.nojekyll` so GitHub Pages serves underscore-prefixed directories such as `_framework`.
 - Adds `.gitattributes` with `* -text` to the deployment output so Git preserves the exact hashed bytes.
 
@@ -36,6 +36,10 @@ node LaserBatcher.Tests/serve-published.cjs LaserBatcher.Tests/obj/pages/wwwroot
 ```
 
 With Playwright available, run `node LaserBatcher.Tests/browser-pages.cjs` with `LASERBATCHER_URL=http://127.0.0.1:5193`. It checks root resource URLs, the service-worker scope, offline reload, and graceful registration failure. The broader identity/PWA regression is documented in the [brand guide](brand-guide.md).
+
+The static public documents are `/about/`, `/guides/svg-batching/`, `/guides/svg-preparation/`, `/guides/metadata-and-runtime/`, and `/guides/operation-mapping/`. The local host reproduces directory indexes, trailing-slash redirects and the custom 404 response. `browser-seo.cjs` checks raw/no-JavaScript content, themes, keyboard and mobile layouts, new-tab workspace links, fresh guide visits without Blazor or a worker, and installed-worker online/offline navigation. See [public content and SEO](seo.md) for content maintenance, audits and the separate Search Console rollout.
+
+The published worker uses real HTML entries from its generated asset manifest. Root `/` and its explicit `/index.html` Blazor route load the workspace; public paths and their index aliases load their own static documents. Unknown navigations use the server's response online and the cached noindex 404 document with HTTP 404 offline. Guide pages never register a worker themselves, but a worker installed through the workspace caches their documents and required assets. The usual close-all-tabs update lifecycle still applies to previously installed versions; this pass does not force a reload of an active job.
 
 Run `node LaserBatcher.Tests/browser-startup.cjs` against the same local publish to check non-JavaScript readers, a blocked startup script, a missing boot manifest, disabled WebAssembly, runtime error controls, and waiting-update notifications. The script simulates update lifecycle events without reloading an unsaved job. `browser-pages.cjs` separately verifies the real published worker and offline startup.
 
