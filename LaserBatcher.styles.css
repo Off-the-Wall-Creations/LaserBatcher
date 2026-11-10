@@ -7,9 +7,13 @@
 .brand img[b-05drbne3ye] { flex: none; }
 .brand h1[b-05drbne3ye] { font-size: 1.15rem; margin: 0; letter-spacing: -.035em; }
 .brand p[b-05drbne3ye] { color: var(--lb-muted); margin: 0; font-size: .7rem; }
+.header-actions[b-05drbne3ye] { display: flex; align-items: center; gap: 1rem; }
+.guides-link[b-05drbne3ye] { font-size: .8rem; }
+.new-tab-label[b-05drbne3ye] { font-size: .7rem; }
 main[b-05drbne3ye], .content[b-05drbne3ye] { height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 @media (max-width: 575px) {
     .app-header[b-05drbne3ye] { gap: .25rem; padding: .35rem .5rem; }
+    .header-actions[b-05drbne3ye] { gap: .3rem; flex-direction: column; align-items: flex-end; }
     .app-header[b-05drbne3ye]  .appearance-control label { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
     .app-header[b-05drbne3ye]  .appearance-control select { min-width: 5.5rem; padding-block: .25rem; font-size: .8rem; }
 }

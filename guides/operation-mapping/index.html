@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F7F3EC" />
+    <title>Map, Ignore &amp; Order SVG Operations | LaserBatcher</title>
+    <meta name="description" content="Assign laser operations to SVG groups and elements. Understand inheritance, Ignore, child overrides, clone dependencies and the two batching order modes." />
+    <link rel="canonical" href="https://batcher.offthewallcreations.xyz/guides/operation-mapping/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LaserBatcher" />
+    <meta property="og:title" content="Map, Ignore &amp; Order SVG Operations | LaserBatcher" />
+    <meta property="og:description" content="Assign laser operations to SVG groups and elements. Understand inheritance, Ignore, child overrides, clone dependencies and the two batching order modes." />
+    <meta property="og:url" content="https://batcher.offthewallcreations.xyz/guides/operation-mapping/" />
+    <meta property="og:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Operation mapping guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Map, Ignore &amp; Order SVG Operations | LaserBatcher" />
+    <meta name="twitter:description" content="Assign laser operations to SVG groups and elements. Understand inheritance, Ignore, child overrides, clone dependencies and the two batching order modes." />
+    <meta name="twitter:url" content="https://batcher.offthewallcreations.xyz/guides/operation-mapping/" />
+    <meta name="twitter:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta name="twitter:image:alt" content="Operation mapping guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="icon" type="image/svg+xml" href="/brand/laserbatcher.svg" />
+    <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "LaserBatcher",
+          "item": "https://batcher.offthewallcreations.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "About & guides",
+          "item": "https://batcher.offthewallcreations.xyz/about/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Operation mapping",
+          "item": "https://batcher.offthewallcreations.xyz/guides/operation-mapping/"
+        }
+      ]
+    }
+  ]
+}</script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4X5DN7KDYD"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-4X5DN7KDYD');</script>
+    <script src="/public-site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><div class="site-header-inner">
+    <a class="site-brand" href="/about/"><img src="/brand/laserbatcher.svg" width="40" height="40" alt="" /><span><strong>LaserBatcher</strong><small>by Off the Wall Creations</small></span></a>
+    <nav aria-label="Main"><a href="/about/">About &amp; guides</a><a class="button-link" href="/">Open LaserBatcher</a></nav>
+    <div class="public-theme-slot"><div class="public-theme" hidden><label for="public-appearance">Appearance</label><select id="public-appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+</div></header>
+<main id="main" class="public-main" tabindex="-1">
+<nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">LaserBatcher</a></li><li><a href="/about/">About &amp; guides</a></li><li><span aria-current="page">Operation mapping</span></li></ol></nav>
+<article><p class="eyebrow">LaserBatcher guide</p><h1>Map, ignore and order SVG operations</h1>
+
+<p class="lede">Operation Mapping connects the artwork in an SVG to Engrave, Score, Interior Cut or Exterior Cut. Ignore omits selected production geometry from the batch.</p>
+<h2>Assign a group, then refine its children</h2>
+<p>The nearest explicit assignment wins. Assigning a group applies to its descendants unless a closer group or element has its own explicit assignment. Choose <strong>From source / parent</strong> to remove an explicit assignment and return to source or inherited mapping.</p>
+<p>Canonical operation labels can initialize mapping. Suggestions and ambiguous labels need review: a generic Cut label, or a raw Glowforge <code>type="cut"</code>, is not enough to decide Interior Cut versus Exterior Cut or to infer Score.</p>
+<p>Expand and collapse groups to navigate the list. Collapsed groups still show production and unresolved descendant counts. Assignments and totals include every production element, even those in closed groups. Collapsing changes only the view.</p>
+<h2>Use Ignore with child overrides</h2>
+<p>Ignore excludes production occurrences from rendered batches and downloads. For example, Ignore a construction-guides group, then assign one child to Score if that mark should remain. An explicit child operation overrides the parent's Ignore assignment.</p>
+<p>Ignored elements remain visible in the mapping list so you can restore them. They count as ignored rather than unresolved. Rendering requires at least one included production element; an all-ignored job displays “Include at least one production element.”</p>
+<p>Ignore changes invalidate the rendered batch and clear an entered runtime estimate. They do not resize the source canvas or change packing capacity, source yield or copy count. Licensing, hidden content, semantic metadata and unrelated definitions retain their preservation rules.</p>
+<h2>Inspect an element without changing production styling</h2>
+<p>Click a thumbnail for an enlarged preview inside the mapping panel. Enhanced mode uses contrasting colors and non-scaling strokes; Original shows the original styling. The main canvas remains on its current Source or Batch view, and inspection colors never enter an export.</p>
+<figure><img src="/images/mapping-inspection.jpg" width="1366" height="768" loading="lazy" decoding="async" alt="LaserBatcher mapping panel with an enlarged synthetic tag outline, operation assignments and ignored construction geometry beside the source canvas." /><figcaption>The same synthetic design in an inspection view. Selection, display mode and group collapse are independent of production assignments.</figcaption></figure>
+<h2>Understand clone dependencies</h2>
+<p>A clone can reference artwork that is ignored as a production occurrence. If the clone remains included, LaserBatcher retains its required source subtree as a non-rendering definition and remaps IDs and references for each copy. Assignments do not propagate through clone references.</p>
+<p>That retained definition supports the included clone; it does not reintroduce the ignored original as visible production geometry. Unsupported dependency transformations block export with an actionable error. Simplify the dependency in your SVG editor before trying again.</p>
+<h2>Choose operation order</h2>
+<p>The category sequence is <strong>Engrave → Score → Interior Cut → Exterior Cut</strong>.</p>
+<ul><li><strong>Within each copy</strong> applies that sequence to one copy, then proceeds to the next.</li><li><strong>Across the sheet</strong> groups each category across all copies before proceeding to the next category.</li></ul>
+<p>Supported Glowforge step definitions are regenerated for included artwork while retaining power, speed, passes, focus and unknown setting attributes. Empty steps are omitted, and changes to native order produce warnings. Review the separate raw settings and readable report values in Glowforge settings when available.</p>
+<p>These choices control exported structure. They do not guarantee that laser software will honor that order. Verify the imported result and machine settings in the application you use to run the laser.</p>
+<aside class="related" aria-label="Related guides"><h2>Keep going</h2><ul><li><a href="/guides/svg-batching/">SVG batching</a></li><li><a href="/guides/svg-preparation/">SVG preparation</a></li><li><a href="/guides/metadata-and-runtime/">Metadata &amp; runtime</a></li></ul><p><a class="button-link" href="/">Open LaserBatcher</a></p></aside>
+</article></main>
+<footer class="site-footer"><div class="site-footer-inner"><p>LaserBatcher <span class="muted">by Off the Wall Creations</span></p><nav aria-label="Footer"><a href="/about/">About &amp; guides</a><a href="https://www.buymeacoffee.com/tbm0115">Buy me a coffee</a></nav></div></footer>
+</body></html>

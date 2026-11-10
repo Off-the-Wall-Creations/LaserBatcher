@@ -7,7 +7,7 @@
   "linkerEnabled": true,
   "resources": {
     "assembly": {
-      "LaserBatcher.dll": "sha256-Xiij3U37\/TT1Niy3NOabYpxBnZxh5M0Q\/7g4KN2BSVw=",
+      "LaserBatcher.dll": "sha256-sSHBIMzdbx2k8SEOpBi8YxcY+hMm98E2NOnRvaIUClg=",
       "Microsoft.AspNetCore.Components.dll": "sha256-IjhD7FGRsvNc+hZtROyCv5WApzteHG8laejGPdicIxc=",
       "Microsoft.AspNetCore.Components.Web.dll": "sha256-90AqpvsRJF31PPl3ugkLV4cYM9K1yc8wlgEwyk1XYnE=",
       "Microsoft.AspNetCore.Components.WebAssembly.dll": "sha256-mMcIoLwDtdf4GLuxVwW5OJe8ifn9ZJtjmsPus2SDhOk=",

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F7F3EC" />
+    <title>How to Batch SVG Copies onto a Sheet | LaserBatcher</title>
+    <meta name="description" content="Arrange repeated SVG designs using sheet dimensions, margins, spacing and copies. Review operations, render a batch and download it with LaserBatcher." />
+    <link rel="canonical" href="https://batcher.offthewallcreations.xyz/guides/svg-batching/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LaserBatcher" />
+    <meta property="og:title" content="How to Batch SVG Copies onto a Sheet | LaserBatcher" />
+    <meta property="og:description" content="Arrange repeated SVG designs using sheet dimensions, margins, spacing and copies. Review operations, render a batch and download it with LaserBatcher." />
+    <meta property="og:url" content="https://batcher.offthewallcreations.xyz/guides/svg-batching/" />
+    <meta property="og:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SVG batching guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to Batch SVG Copies onto a Sheet | LaserBatcher" />
+    <meta name="twitter:description" content="Arrange repeated SVG designs using sheet dimensions, margins, spacing and copies. Review operations, render a batch and download it with LaserBatcher." />
+    <meta name="twitter:url" content="https://batcher.offthewallcreations.xyz/guides/svg-batching/" />
+    <meta name="twitter:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta name="twitter:image:alt" content="SVG batching guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="icon" type="image/svg+xml" href="/brand/laserbatcher.svg" />
+    <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "LaserBatcher",
+          "item": "https://batcher.offthewallcreations.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "About & guides",
+          "item": "https://batcher.offthewallcreations.xyz/about/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "SVG batching",
+          "item": "https://batcher.offthewallcreations.xyz/guides/svg-batching/"
+        }
+      ]
+    }
+  ]
+}</script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4X5DN7KDYD"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-4X5DN7KDYD');</script>
+    <script src="/public-site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><div class="site-header-inner">
+    <a class="site-brand" href="/about/"><img src="/brand/laserbatcher.svg" width="40" height="40" alt="" /><span><strong>LaserBatcher</strong><small>by Off the Wall Creations</small></span></a>
+    <nav aria-label="Main"><a href="/about/">About &amp; guides</a><a class="button-link" href="/">Open LaserBatcher</a></nav>
+    <div class="public-theme-slot"><div class="public-theme" hidden><label for="public-appearance">Appearance</label><select id="public-appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+</div></header>
+<main id="main" class="public-main" tabindex="-1">
+<nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">LaserBatcher</a></li><li><a href="/about/">About &amp; guides</a></li><li><span aria-current="page">SVG batching</span></li></ol></nav>
+<article><p class="eyebrow">LaserBatcher guide</p><h1>Batch SVG copies onto a laser sheet</h1>
+
+<p class="lede">Use a regular arrangement of copies when you want the same SVG design repeated across a sheet. LaserBatcher keeps the source canvas size as the footprint of each copy.</p>
+<h2>1. Open your SVG</h2>
+<p>Choose <strong>Open SVG</strong> in the toolbar. The main canvas initially displays Source. An ordinary SVG opens in Create batch; a recognized LaserBatcher export defaults to Edit metadata. Select Create batch explicitly if you want to repeat a previous export as a new source.</p>
+<p>If import reports a size or format problem, follow the <a href="/guides/svg-preparation/">SVG preparation guide</a>. Resolve blocking Issues before rendering.</p>
+<h2>2. Set the sheet and copy count</h2>
+<p>Enter Width and Height in inches. Horizontal margin reserves space at the left and right; Vertical margin reserves space at the top and bottom. Spacing is the gap between source canvases. Set Copies yourself, or use <strong>Fill</strong> to use the available capacity.</p>
+<p>For example, a 2 × 1.5 inch source on an 8 × 5 inch sheet with 0.25 inch margins and 0.125 inch spacing fits three columns and two rows: six copies. This uses the whole source canvas, including any blank area; it does not crop or automatically nest individual shapes.</p>
+<p>On a narrow window, open <strong>Sheet</strong> to edit these settings and Apply them. Use <strong>Program</strong> for optional part, order, batch and yield fields.</p>
+<h2>3. Review operation mapping</h2>
+<p>Open Mapping and check included, ignored and unresolved counts. Give unresolved production elements an operation, or choose Ignore to omit them. Group assignments apply to descendants unless a closer explicit assignment overrides them. At least one production element must be included.</p>
+<p>Choose Within each copy or Across the sheet for operation order. Read the <a href="/guides/operation-mapping/">mapping guide</a> for the difference and for clone dependencies.</p>
+<h2>4. Render and inspect the batch</h2>
+<p>Press <strong>▶ Render</strong> (Render batch). This generates a preview; it never starts a laser. The canvas switches to Batch. Use Fit, zoom and pan to inspect it, and switch back to Source for comparison. Clear preview returns to Source while retaining your inputs.</p>
+<figure><img src="/images/batch-workspace.jpg" width="1366" height="768" loading="lazy" decoding="async" alt="LaserBatcher showing six synthetic geometric tags arranged in three columns and two rows on an 8 by 5 inch sheet." /><figcaption>A synthetic tag design repeated six times. Sheet dimensions and spacing describe the layout, not material or machine settings.</figcaption></figure>
+<h2>5. Download and check in your laser software</h2>
+<p><strong>Download SVG</strong> becomes available after a valid render. Changes to batch settings or assignments require another render. The download uses your program fields and total yield in its filename and leaves the uploaded original untouched.</p>
+<p>Open the result in your laser software and verify scale, retained settings and actual operation order there. LaserBatcher has no connection to the machine. You can add a whole-job <a href="/guides/metadata-and-runtime/">Estimated Runtime</a> after reviewing your setup, or re-upload the export to add it later.</p>
+<aside class="related" aria-label="Related guides"><h2>Keep going</h2><ul><li><a href="/guides/svg-preparation/">SVG preparation</a></li><li><a href="/guides/metadata-and-runtime/">Metadata &amp; runtime</a></li><li><a href="/guides/operation-mapping/">Operation mapping</a></li></ul><p><a class="button-link" href="/">Open LaserBatcher</a></p></aside>
+</article></main>
+<footer class="site-footer"><div class="site-footer-inner"><p>LaserBatcher <span class="muted">by Off the Wall Creations</span></p><nav aria-label="Footer"><a href="/about/">About &amp; guides</a><a href="https://www.buymeacoffee.com/tbm0115">Buy me a coffee</a></nav></div></footer>
+</body></html>

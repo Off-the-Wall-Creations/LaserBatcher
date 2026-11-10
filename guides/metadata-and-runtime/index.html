@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F7F3EC" />
+    <title>SVG Job Metadata &amp; Estimated Runtime | LaserBatcher</title>
+    <meta name="description" content="Set part, order, batch, yield and a manual whole-job runtime in LaserBatcher. Re-upload an export to edit metadata while preserving the artwork." />
+    <link rel="canonical" href="https://batcher.offthewallcreations.xyz/guides/metadata-and-runtime/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LaserBatcher" />
+    <meta property="og:title" content="SVG Job Metadata &amp; Estimated Runtime | LaserBatcher" />
+    <meta property="og:description" content="Set part, order, batch, yield and a manual whole-job runtime in LaserBatcher. Re-upload an export to edit metadata while preserving the artwork." />
+    <meta property="og:url" content="https://batcher.offthewallcreations.xyz/guides/metadata-and-runtime/" />
+    <meta property="og:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Metadata and runtime guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SVG Job Metadata &amp; Estimated Runtime | LaserBatcher" />
+    <meta name="twitter:description" content="Set part, order, batch, yield and a manual whole-job runtime in LaserBatcher. Re-upload an export to edit metadata while preserving the artwork." />
+    <meta name="twitter:url" content="https://batcher.offthewallcreations.xyz/guides/metadata-and-runtime/" />
+    <meta name="twitter:image" content="https://batcher.offthewallcreations.xyz/brand/laserbatcher-sharing.png" />
+    <meta name="twitter:image:alt" content="Metadata and runtime guide from LaserBatcher by Off the Wall Creations, represented by its stacked sheets icon and repeated geometric tags on a charcoal and amber card." />
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="icon" type="image/svg+xml" href="/brand/laserbatcher.svg" />
+    <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "LaserBatcher",
+          "item": "https://batcher.offthewallcreations.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "About & guides",
+          "item": "https://batcher.offthewallcreations.xyz/about/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Metadata & runtime",
+          "item": "https://batcher.offthewallcreations.xyz/guides/metadata-and-runtime/"
+        }
+      ]
+    }
+  ]
+}</script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4X5DN7KDYD"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-4X5DN7KDYD');</script>
+    <script src="/public-site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><div class="site-header-inner">
+    <a class="site-brand" href="/about/"><img src="/brand/laserbatcher.svg" width="40" height="40" alt="" /><span><strong>LaserBatcher</strong><small>by Off the Wall Creations</small></span></a>
+    <nav aria-label="Main"><a href="/about/">About &amp; guides</a><a class="button-link" href="/">Open LaserBatcher</a></nav>
+    <div class="public-theme-slot"><div class="public-theme" hidden><label for="public-appearance">Appearance</label><select id="public-appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+</div></header>
+<main id="main" class="public-main" tabindex="-1">
+<nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">LaserBatcher</a></li><li><a href="/about/">About &amp; guides</a></li><li><span aria-current="page">Metadata &amp; runtime</span></li></ol></nav>
+<article><p class="eyebrow">LaserBatcher guide</p><h1>Keep job metadata and estimated runtime with your SVG</h1>
+
+<p class="lede">Program metadata identifies a job. Estimated Runtime records your own duration estimate for running the entire output SVG once, independently of laser type.</p>
+<h2>Set program fields and understand yield</h2>
+<p>Part, Order and Batch are optional. In Create batch, <strong>Parts / source</strong> is the number of parts represented by one source SVG. Total yield is that number multiplied by Copies. A source representing four parts copied three times produces a total yield of twelve.</p>
+<p>The download filename follows <code>[PartName_][Order OrderNumber_][Batch Batch_]xYield.svg</code>. For example, <code>Tag_Order A12_Batch B3_x12.svg</code> identifies a twelve-part output. With no optional fields, the filename is <code>_x12.svg</code>. Runtime is never added to the filename.</p>
+<h2>Enter an estimate for the whole job</h2>
+<p>Open <strong>Runtime</strong> in the toolbar. Enter hours, minutes and seconds, then Apply. Hours can exceed 23, so a duration of 25 hours is valid. Leave the duration blank when it is unknown, or clear it to remove a saved estimate.</p>
+<p>The total must be a positive number of whole seconds within the supported range. Negative values, zero duration, fractional seconds and overflow are rejected. The estimate is not multiplied by copy count or yield, and LaserBatcher does not calculate it from geometry or machine settings.</p>
+<p>Changes to layout, copies, assignments or operation ordering clear an entered estimate with a notice because the job has changed. Program-field edits and view controls such as zoom, background, collapse and inspection mode retain it. A new batch starts without an output estimate.</p>
+<h2>Update an existing export without re-batching</h2>
+<ol><li>Open the generated SVG. A recognized, supported LaserBatcher export defaults to <strong>Edit metadata</strong>.</li><li>Edit Part, Order, Batch, Total yield or Runtime. A saved runtime is restored into the dialog.</li><li>Choose <strong>Download updated SVG</strong>. The filename reflects the edited program fields, and a separate file is downloaded.</li></ol>
+<p>Metadata-only editing preserves artwork, layout, sheet dimensions, machine settings, hidden content and unrelated metadata, including unknown JSON properties. XML formatting may change. It does not require operation mapping or sheet-fit validation, and an unavailable preview does not prevent a valid metadata update.</p>
+<h2>Yield overrides and repeated batches</h2>
+<p>In Edit metadata, changing Total yield records an explicit override. The original source yield and copy count remain as provenance; changing the number does not add or remove artwork. New and updated records use metadata v2, and existing v1 exports can be read and migrated on update.</p>
+<p>To batch a previous export again, select Create batch. Its effective total yield becomes the new source yield: an eight-part export copied three times gives twenty-four parts. An old yield override or runtime estimate is not carried into the new batch.</p>
+<h2>Resolve filename and metadata conflicts</h2>
+<p>Valid embedded metadata takes precedence when a file has been renamed. If a valid structured filename disagrees, Issues offers a visible choice between the values, or you can correct the fields before export.</p>
+<p>Malformed, ambiguous or future-version records are preserved with a warning. They cannot be safely updated in Edit metadata. For batching, use the filename or enter program fields manually as directed by Issues. Historical nested records remain provenance rather than initializing the current job.</p>
+<aside class="related" aria-label="Related guides"><h2>Keep going</h2><ul><li><a href="/guides/svg-batching/">SVG batching</a></li><li><a href="/guides/svg-preparation/">SVG preparation</a></li><li><a href="/guides/operation-mapping/">Operation mapping</a></li></ul><p><a class="button-link" href="/">Open LaserBatcher</a></p></aside>
+</article></main>
+<footer class="site-footer"><div class="site-footer-inner"><p>LaserBatcher <span class="muted">by Off the Wall Creations</span></p><nav aria-label="Footer"><a href="/about/">About &amp; guides</a><a href="https://www.buymeacoffee.com/tbm0115">Buy me a coffee</a></nav></div></footer>
+</body></html>

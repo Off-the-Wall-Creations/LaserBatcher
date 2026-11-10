@@ -33,17 +33,36 @@ async function onActivate(event) {
 }
 
 async function onFetch(event) {
-    let cachedResponse = null;
-    if (event.request.method === 'GET') {
-        // For all navigation requests, try to serve index.html from cache
-        // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate';
-
-        const request = shouldServeIndexHtml ? 'index.html' : event.request;
-        const cache = await caches.open(cacheName);
-        cachedResponse = await cache.match(request);
+    if (event.request.method !== 'GET') return fetch(event.request);
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) return fetch(event.request);
+    const cache = await caches.open(cacheName);
+    if (event.request.mode === 'navigate') {
+        // Only real, published HTML documents have a navigation fallback.
+        // / and /index.html share the workspace; guides keep their own content.
+        const documentPath = url.pathname === '/' ? 'index.html'
+            : url.pathname.endsWith('/') ? url.pathname.slice(1) + 'index.html'
+            : url.pathname.slice(1);
+        const isDocument = documentPath.endsWith('.html') && documentPath !== '404.html'
+            && self.assetsManifest.assets.some(asset => asset.url === documentPath);
+        if (isDocument) {
+            const document = await cache.match(documentPath);
+            if (document) return document;
+        }
+        // Mirror GitHub Pages' trailing-slash directory redirect, even offline.
+        if (!url.pathname.endsWith('/') && self.assetsManifest.assets.some(asset => asset.url === url.pathname.slice(1) + '/index.html')) {
+            url.pathname += '/';
+            return Response.redirect(url.href, 301);
+        }
+        try { return await fetch(event.request); }
+        catch (error) {
+            const missing = await cache.match('404.html');
+            return new Response(missing ? await missing.text() : 'Page not found', {
+                status: 404, statusText: 'Not Found',
+                headers: { 'Content-Type': missing ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8' }
+            });
+        }
     }
-
-    return cachedResponse || fetch(event.request);
+    return await cache.match(event.request) || fetch(event.request);
 }
-/* Manifest version: LOkE0ghz */
+/* Manifest version: Lq8H+4S0 */

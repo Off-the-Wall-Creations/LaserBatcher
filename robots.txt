@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://batcher.offthewallcreations.xyz/sitemap.xml
