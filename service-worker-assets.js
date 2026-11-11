@@ -6389,7 +6389,7 @@
       "url": "sitemap.xml"
     },
     {
-      "hash": "sha256-UUmebQKqm3bwOm0CZLhmyWI98wHPqhnb5e5dWUmMDpc=",
+      "hash": "sha256-csFeE+mlSIGwApT3JKaWCCVjhsrckeBC9d9kd1JEEQU=",
       "url": "startup.js"
     },
     {
@@ -6405,5 +6405,5 @@
       "url": "workspace.js"
     }
   ],
-  "version": "Lq8H+4S0"
+  "version": "HUY+CxfS"
 };

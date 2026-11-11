@@ -44,6 +44,19 @@
                         if (installing.state === 'installed') updateReady(registration);
                     });
                 });
+                // A long-lived installed window may not navigate for days. Check
+                // again on return/reconnect, without activating over an unsaved job.
+                let lastUpdateCheck = Date.now(), checkingUpdate = false;
+                const checkForUpdate = () => {
+                    if (document.visibilityState !== 'visible' || checkingUpdate || registration.waiting ||
+                        typeof registration.update !== 'function' || Date.now() - lastUpdateCheck < 5 * 60 * 1000) return;
+                    lastUpdateCheck = Date.now(); checkingUpdate = true;
+                    Promise.resolve().then(() => registration.update())
+                        .catch(error => console.warn('LaserBatcher could not check for an update.', error))
+                        .finally(() => { checkingUpdate = false; });
+                };
+                document.addEventListener('visibilitychange', checkForUpdate);
+                window.addEventListener('online', () => { lastUpdateCheck = 0; checkForUpdate(); });
             })
             .catch(error => console.warn('LaserBatcher offline support is unavailable.', error));
     }
