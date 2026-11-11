@@ -88,5 +88,35 @@ const url = process.env.LASERBATCHER_URL || 'http://127.0.0.1:5193/';
       await ctx.close();
     }
     console.log('Already waiting and newly installed PWA updates notify users without reloading their work.');
+
+    const returning = await context();
+    await returning.addInitScript(() => {
+      if (window !== window.top) return;
+      const originalNow = Date.now;
+      window.testClockOffset = 0; Date.now = () => originalNow() + window.testClockOffset;
+      window.testVisibility = 'visible'; window.updateCalls = 0; window.failUpdate = false;
+      Object.defineProperty(document, 'visibilityState', { get: () => window.testVisibility });
+      const registration = new EventTarget(); registration.waiting = null;
+      registration.update = async () => { window.updateCalls++; if(window.failUpdate) throw new TypeError('offline'); return registration; };
+      navigator.serviceWorker.register = async () => registration;
+    });
+    const returningPage = await returning.newPage(), returningErrors = [];
+    returningPage.on('pageerror', error=>returningErrors.push(error.message));
+    await returningPage.goto(url); await ready(returningPage);
+    await returningPage.locator('#svgUpload').setInputFiles({name:'Kept.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1in" height="1in"><path id="Score" d="M1 1h10"/></svg>')});
+    await returningPage.getByAltText('Uploaded SVG source preview').waitFor();
+    await returningPage.evaluate(()=>{window.testClockOffset=300001;window.testVisibility='hidden';document.dispatchEvent(new Event('visibilitychange'));});
+    assert.equal(await returningPage.evaluate(()=>window.updateCalls),0);
+    await returningPage.evaluate(()=>{window.testVisibility='visible';document.dispatchEvent(new Event('visibilitychange'));});
+    await returningPage.waitForFunction(()=>window.updateCalls===1);
+    await returningPage.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+    assert.equal(await returningPage.evaluate(()=>window.updateCalls),1,'Returning checks are throttled');
+    await returningPage.evaluate(()=>{window.failUpdate=true;window.dispatchEvent(new Event('online'));});
+    await returningPage.waitForFunction(()=>window.updateCalls===2);
+    assert.equal(await returningPage.locator('#partName').inputValue(),'Kept');
+    assert(await returningPage.getByAltText('Uploaded SVG source preview').isVisible());
+    assert.deepEqual(returningErrors,[],'A failed update check must not become an unhandled error');
+    await returning.close();
+    console.log('Returning/reconnecting checks are throttled, catch failures and retain the active job.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

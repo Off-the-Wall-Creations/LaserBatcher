@@ -9,7 +9,7 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.svg$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/ ];
-const offlineAssetsExclude = [ /^service-worker\.js$/ ];
+const offlineAssetsExclude = [ /^service-worker\.js$/, /^(?:sitemap\.xml|robots\.txt)$/ ];
 
 async function onInstall(event) {
     console.info('Service worker: Install');
@@ -36,6 +36,17 @@ async function onFetch(event) {
     if (event.request.method !== 'GET') return fetch(event.request);
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return fetch(event.request);
+    // Crawler files must never become a cached HTML shell or an offline 404 page.
+    // Fetch from the network rather than reuse browser HTTP/Cache Storage entries.
+    if (url.pathname === '/sitemap.xml' || url.pathname === '/robots.txt') {
+        try { return await fetch(event.request, { cache: 'no-store' }); }
+        catch {
+            return new Response('This crawler file requires a network connection. Reconnect and reload.', {
+                status: 503, statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
+            });
+        }
+    }
     const cache = await caches.open(cacheName);
     if (event.request.mode === 'navigate') {
         // Only real, published HTML documents have a navigation fallback.
@@ -46,6 +57,12 @@ async function onFetch(event) {
         const isDocument = documentPath.endsWith('.html') && documentPath !== '404.html'
             && self.assetsManifest.assets.some(asset => asset.url === documentPath);
         if (isDocument) {
+            // Public HTML can refresh independently. Keep the workspace and its
+            // framework assets on one integrity-checked release to avoid mixing versions.
+            if (documentPath !== 'index.html') {
+                try { return await fetch(event.request, { cache: 'no-cache' }); }
+                catch { /* Fall back to the published public document while offline. */ }
+            }
             const document = await cache.match(documentPath);
             if (document) return document;
         }

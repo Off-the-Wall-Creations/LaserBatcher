@@ -22,8 +22,8 @@ jobs:
       - name: Test metadata parsing and SVG exports
         run: dotnet test LaserBatcher.Tests/LaserBatcher.Tests.csproj -c Release --nologo
 
-      - name: Test Pages deployment checks
-        run: node --test LaserBatcher.Tests/pages-deployment.test.cjs
+      - name: Test Pages deployment and cache routing
+        run: node --test LaserBatcher.Tests/pages-deployment.test.cjs LaserBatcher.Tests/service-worker.test.cjs
 
       # This repository's custom domain serves the app at /, not /LaserBatcher/.
       # Keep wwwroot/index.html's base tag unchanged so the PWA hash stays valid.

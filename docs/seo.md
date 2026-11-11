@@ -35,7 +35,7 @@ Root JSON-LD describes the WebSite and creator Organization. The overview descri
 ## Local verification
 
 ```powershell
-node --test LaserBatcher.Tests/pages-deployment.test.cjs
+node --test LaserBatcher.Tests/pages-deployment.test.cjs LaserBatcher.Tests/service-worker.test.cjs
 dotnet test LaserBatcher.Tests/LaserBatcher.Tests.csproj
 dotnet build LaserBatcher/LaserBatcher.csproj
 dotnet publish LaserBatcher/LaserBatcher.csproj -c Release -o LaserBatcher.Tests/obj/pages
@@ -48,9 +48,13 @@ node LaserBatcher.Tests/browser-workspace.cjs
 node LaserBatcher.Tests/browser-smoke.cjs
 node LaserBatcher.Tests/browser-identity.cjs
 node LaserBatcher.Tests/browser-pages.cjs
+$env:LASERBATCHER_PUBLISHED = 'LaserBatcher.Tests/obj/pages/wwwroot'
+node LaserBatcher.Tests/browser-cache-upgrade.cjs
 ```
 
 The preparation validator checks canonicals separately from resource links, titles/descriptions, JSON-LD, local links/fragments, sharing-image dimensions, Analytics configuration, sitemap coverage and all generated asset hashes. Browser checks cover complete no-JS content, fresh-guide request isolation, preferences/storage failure, keyboard navigation, mobile/200% layout, image dimensions without layout shift, active-job new-tab links, and real installed-worker online/offline documents and 404 status.
+
+Public HTML now revalidates online and falls back to its published document offline; the workspace retains a consistent cached release. Crawler files use network-only requests, with a plain-text HTTP 503 while offline. An old catch-all worker must finish its normal close-all-tabs upgrade before those rules take effect. See [sitemap/cache recovery](github-pages.md#sitemap-showing-the-app-or-search-console-reporting-couldnt-fetch) for the distinction between browser caching and Search Console fetch status, and the real legacy-worker upgrade test.
 
 For Lighthouse, install the audit tool in the ignored test output directory, not as an application dependency. This pass uses Lighthouse 13.6.0 with Node 24.22.2 and the local Playwright Chromium. Configure `LIGHTHOUSE_CLI` to its `lighthouse/cli/index.js`, `CHROME_PATH` to Chromium, and `LASERBATCHER_URL` to the local published server, then run `node tools/audit-seo.cjs`. `--baseline` audits only the unchanged workspace; `SEO_AUDIT_OUTPUT` selects the report directory. Full runs audit all six pages in desktop and simulated mobile configurations. Reports default to `LaserBatcher.Tests/obj/seo-audits`.
 
